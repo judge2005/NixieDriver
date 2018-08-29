@@ -26,7 +26,7 @@ protected:
 
 	virtual uint8_t getSPIMode() { return SPI_MODE3; }
 	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) { return colonMap[mask]; }
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint16_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
+	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
 	virtual unsigned long ICACHE_RAM_ATTR convertPolarity(unsigned long pins) { return pins ^ 0xffffffff; }
 };
 

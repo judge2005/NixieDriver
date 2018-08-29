@@ -20,13 +20,15 @@ protected:
 
 	static const unsigned long nixieDigitMap[13];
 	static const unsigned long colonMap[4];
+	static unsigned long currentColonMap[4];
 
 	static const unsigned long dp1 = 0x100000;
 	static const unsigned long dp2 = 0x200000;
 
 	virtual uint8_t getSPIMode() { return SPI_MODE1; }
-	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) { return colonMap[mask]; }
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint16_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
+	virtual void cacheColonMap();
+	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) { return currentColonMap[mask]; }
+	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
 	virtual unsigned long ICACHE_RAM_ATTR convertPolarity(unsigned long pins) { return pins ^ 0xffffffff; }
 };
 

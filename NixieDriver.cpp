@@ -105,3 +105,5 @@ bool ICACHE_RAM_ATTR NixieDriver::calculateFade(unsigned long nowMs) {
 
 	return true;
 }
+
+void NixieDriver::cacheColonMap() {}

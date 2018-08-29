@@ -39,6 +39,7 @@ void HVNixieDriver::interruptHandler() {
 	static unsigned long prevPinMask = 0;
 	unsigned long pinMask = 0;
 
+	displayPWM.onPercent = brightness;
 	bool displayOff = displayPWM.off();
 
 	byte mxShift = multiplexCount << 2;

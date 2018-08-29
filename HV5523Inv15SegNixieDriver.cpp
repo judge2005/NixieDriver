@@ -77,3 +77,19 @@ const unsigned long HV5523Inv15SegNixieDriver::nixieDigitMap[13] = {
 	0x0, 		// Nothing
 };
 
+void HV5523Inv15SegNixieDriver::cacheColonMap() {
+	if (indicator == 0) {
+		for (int i=0; i<4; i++) {
+			currentColonMap[i] = 0;
+		}
+	} else if (indicator == 1) {
+		for (int i=0; i<4; i++) {
+			currentColonMap[i] = colonMap[i];
+		}
+	} else {
+		currentColonMap[0] = 0;
+		currentColonMap[1] = 0;
+		currentColonMap[2] = nixieDigitMap[11];
+		currentColonMap[3] = nixieDigitMap[11];
+	}
+}

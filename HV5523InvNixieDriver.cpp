@@ -30,3 +30,27 @@ const unsigned long HV5523InvNixieDriver::colonMap[4] = {
 	0x400000,	// right
 	0xc00000	// both
 };
+
+unsigned long HV5523InvNixieDriver::currentColonMap[4] = {
+	0,	// none
+	0,	// none
+	0,	// none
+	0	// none
+};
+
+void HV5523InvNixieDriver::cacheColonMap() {
+	if (indicator == 0) {
+		for (int i=0; i<4; i++) {
+			currentColonMap[i] = 0;
+		}
+	} else if (indicator == 1) {
+		for (int i=0; i<4; i++) {
+			currentColonMap[i] = colonMap[i];
+		}
+	} else {
+		currentColonMap[0] = 0;
+		currentColonMap[1] = nixieDigitMap[10];
+		currentColonMap[2] = nixieDigitMap[11];
+		currentColonMap[3] = nixieDigitMap[10] | nixieDigitMap[11];
+	}
+}

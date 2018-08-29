@@ -52,20 +52,30 @@ public:
 	inline void setBrightness(const byte b) {
 		brightness = b;
 	}
-	inline void setNixieDigit(const uint16_t digit) {
+	inline void setNixieDigit(const uint32_t digit) {
 		nextDigit = digit;
 	}
-	inline uint16_t getNixieDigit() {
+	inline uint32_t getNixieDigit() {
 		return nextDigit;
 	}
-	inline void setNewNixieDigit(const uint16_t digit) {
+	inline void setNewNixieDigit(const uint32_t digit) {
 		startFade = millis();
 		nextDigit = digit;
 	}
 	inline void setColons(const byte mask) {
 		colonMask = mask;
 	}
-	virtual bool setTransition(const byte transition, uint16_t nextClockDigit) {
+	inline void setDisplayOn(const bool displayOn) {
+		this->displayOn = displayOn;
+	}
+	inline byte getIndicator() {
+		return indicator;
+	}
+	inline void setIndicator(const byte indicator) {
+		this->indicator = indicator;
+		cacheColonMap();
+	}
+	virtual bool setTransition(const byte transition, uint32_t nextClockDigit) {
 		bool ret = true;
 		if (this->transition != transition) {
 			this->transition = transition;
@@ -89,18 +99,21 @@ public:
 protected:
 	virtual void ICACHE_RAM_ATTR interruptHandler() = 0;
 	virtual bool ICACHE_RAM_ATTR calculateFade(unsigned long nowMs);
+	virtual void cacheColonMap();
 
 	byte numMultiplex = 1;
 	byte multiplexCount = 0;
 	byte cycleCount = 0;
 	volatile byte transitionCount = 0;
-	volatile uint16_t nextDigit = 0;
+	volatile uint32_t nextDigit = 0;
 	volatile byte colonMask = 0;
 	volatile byte transition = 0;
 	volatile unsigned long startFade = 0;
-	volatile DisplayMode displayMode = NO_FADE;
+	volatile bool displayOn = true;
+	volatile DisplayMode displayMode = NO_FADE_DELAY;
+	volatile byte indicator = 0;
 	volatile byte brightness = 50;
-	volatile uint16_t digit = -1;
+	volatile uint32_t digit = -1;
 	SoftPWM fadeInPWM = SoftPWM(0);
 	SoftPWM fadeOutPWM = SoftPWM(100);
 	SoftPWM displayPWM = SoftPWM(100);

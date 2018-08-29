@@ -30,7 +30,7 @@ protected:
 	byte cycleCount = 0;
 	virtual uint8_t getSPIMode() { return SPI_MODE1; }
 	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) { return colonMap[mask]; }
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint16_t digit) {
+	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit) {
 		return nixieDigitMap[(digit >> (multiplexCount << 2)) & 0xf];
 	}
 	virtual unsigned long ICACHE_RAM_ATTR getMultiplexPins() {

@@ -21,7 +21,7 @@ protected:
 
 	virtual uint8_t getSPIMode() = 0;
 	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) = 0;
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint16_t digit) = 0;
+	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit) = 0;
 	virtual unsigned long ICACHE_RAM_ATTR getMultiplexPins();
 	virtual unsigned long ICACHE_RAM_ATTR convertPolarity(unsigned long pins) = 0;
 	virtual void ICACHE_RAM_ATTR interruptHandler();
