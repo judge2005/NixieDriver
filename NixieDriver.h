@@ -83,9 +83,9 @@ public:
 			setNewNixieDigit((digit + 1) % 10);
 		} else if (transition != 0) {
 			transitionCount++;
-			if (transitionCount >= 9) {
+			if (transitionCount >= 19) {
 				setNewNixieDigit(nextClockDigit);
-				if (transitionCount == 10) {
+				if (transitionCount == 20) {
 					ret = false;
 				}
 			} else {
