@@ -49,8 +49,8 @@ void HV5523InvNixieDriver::cacheColonMap() {
 		}
 	} else {
 		currentColonMap[0] = 0;
-		currentColonMap[1] = nixieDigitMap[10];
-		currentColonMap[2] = nixieDigitMap[11];
-		currentColonMap[3] = nixieDigitMap[10] | nixieDigitMap[11];
+		currentColonMap[1] = nixieDigitMap[mapDigit(10)];
+		currentColonMap[2] = nixieDigitMap[mapDigit(11)];
+		currentColonMap[3] = nixieDigitMap[mapDigit(10)] | nixieDigitMap[mapDigit(11)];
 	}
 }

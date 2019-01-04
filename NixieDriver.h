@@ -95,11 +95,32 @@ public:
 
 		return ret;
 	}
+	virtual void setDigitMap(const char *map) {
+		for (int i=0; i < strlen(map); i++) {
+			byte value = digitMap[i];
+			char mValue = map[i];
+
+			if (mValue >= 'a' && mValue <= 'f') {
+				value = mValue - 'a' + 10;
+			} else if (mValue >= 'A' && mValue <= 'F') {
+				value = mValue - 'A' + 10;
+			} else if (mValue >= '0' && mValue <= '9') {
+				value = mValue - '0';
+			}
+
+			digitMap[i] = value;
+		}
+
+		cacheColonMap();
+	}
 
 protected:
 	virtual void ICACHE_RAM_ATTR interruptHandler() = 0;
 	virtual bool ICACHE_RAM_ATTR calculateFade(unsigned long nowMs);
 	virtual void cacheColonMap();
+	byte ICACHE_RAM_ATTR mapDigit(byte digit) {
+		return digitMap[digit];
+	}
 
 	byte numMultiplex = 1;
 	byte multiplexCount = 0;
@@ -122,6 +143,8 @@ protected:
 	#define FADE_TIME2 800
 
 private:
+	static byte digitMap[13];
+
 	static const uint32_t callCycleCount;
 	static volatile int _guard;
 	static NixieDriver *_handler;

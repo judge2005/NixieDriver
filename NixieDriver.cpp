@@ -17,6 +17,11 @@ const uint32_t NixieDriver::callCycleCount = ESP.getCpuFreqMHz() * 1024 / 8;
 volatile int NixieDriver::_guard = 0;
 NixieDriver *NixieDriver::_handler;
 
+// Maps a digit to an index into the pin map.
+byte NixieDriver::digitMap[13] = {
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+};
+
 void NixieDriver::init() {
 	guard(true);
 	if (!_handler) {

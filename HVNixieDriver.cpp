@@ -51,21 +51,21 @@ void HVNixieDriver::interruptHandler() {
 		// otherwise we want to fade whenever fade has been set.
 		if (calculateFade(millis())) {
 			if (!fadeOutPWM.off()) {
-				pinMask = getPin(cd);
+				pinMask = getPin(mapDigit(cd));
 			}
 
 			if (!fadeInPWM.off()) {
-				pinMask |= getPin(nd);
+				pinMask |= getPin(mapDigit(nd));
 			}
 		} else {
 			cd = nd;
 			digit = (digit & digitMasks[multiplexCount]) | (((uint32_t)cd) << mxShift);
 			if (!displayOff) {
-				pinMask = getPin(cd);
+				pinMask = getPin(mapDigit(cd));
 			}
 		}
 	} else if (!displayOff) {
-		pinMask = getPin(cd);
+		pinMask = getPin(mapDigit(cd));
 	}
 
 	cycleCount = (cycleCount + 1) % 20;
