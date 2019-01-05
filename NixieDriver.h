@@ -97,18 +97,20 @@ public:
 	}
 	virtual void setDigitMap(const char *map) {
 		for (int i=0; i < strlen(map); i++) {
-			byte value = digitMap[i];
-			char mValue = map[i];
+			byte digit = i;
+			char cDigit = map[i];
 
-			if (mValue >= 'a' && mValue <= 'f') {
-				value = mValue - 'a' + 10;
-			} else if (mValue >= 'A' && mValue <= 'F') {
-				value = mValue - 'A' + 10;
-			} else if (mValue >= '0' && mValue <= '9') {
-				value = mValue - '0';
+			if (cDigit >= 'a' && cDigit <= 'f') {
+				digit = cDigit - 'a' + 10;
+			} else if (cDigit >= 'A' && cDigit <= 'F') {
+				digit = cDigit - 'A' + 10;
+			} else if (cDigit >= '0' && cDigit <= '9') {
+				digit = cDigit - '0';
+			} else {
+				continue;
 			}
 
-			digitMap[i] = value;
+			digitMap[digit] = i;
 		}
 
 		cacheColonMap();
