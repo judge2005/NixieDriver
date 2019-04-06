@@ -46,6 +46,12 @@ public:
 	virtual void init();
 	virtual ~NixieDriver() {}
 	static void guard(const bool flag);
+	static void setPWMFreq(int pwm_freq) {
+		callCycleCount = ESP.getCpuFreqMHz() * 1000000L / pwm_freq;
+	}
+	static int getPWMFreq(int pwm_freq) {
+		return ESP.getCpuFreqMHz() * 1000000L / callCycleCount;
+	}
 	inline void setMode(const DisplayMode mode) {
 		displayMode = mode;
 	}
@@ -137,9 +143,9 @@ protected:
 	volatile byte indicator = 0;
 	volatile byte brightness = 50;
 	volatile uint32_t digit = -1;
-	SoftPWM fadeInPWM = SoftPWM(0);
-	SoftPWM fadeOutPWM = SoftPWM(100);
-	SoftPWM displayPWM = SoftPWM(100);
+	SoftPWM fadeInPWM = SoftPWM(0, 1);
+	SoftPWM fadeOutPWM = SoftPWM(100, 1);
+	SoftPWM displayPWM = SoftPWM(100, 1);
 	#define FADE_CHANGE_QUANT 1
 	#define FADE_TIME 400
 	#define FADE_TIME2 800
@@ -147,7 +153,7 @@ protected:
 private:
 	static byte digitMap[13];
 
-	static const uint32_t callCycleCount;
+	static volatile uint32_t callCycleCount;
 	static volatile int _guard;
 	static NixieDriver *_handler;
 

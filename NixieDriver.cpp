@@ -13,7 +13,12 @@ bool ICACHE_RAM_ATTR SoftPWM::off() {
 	return count >= onPercent;
 }
 
-const uint32_t NixieDriver::callCycleCount = ESP.getCpuFreqMHz() * 1024 / 8;
+/*
+ * Every microsecond we get 80 instruction cycles (80MHz). If we set the
+ * callCycleCount to 10240, that means that we delay 10240/80 micro seconds
+ * or 128 micro seconds. This is the period. So the frequency is 7.8KHz.
+ */
+volatile uint32_t NixieDriver::callCycleCount = ESP.getCpuFreqMHz() * 1024 / 8;
 volatile int NixieDriver::_guard = 0;
 NixieDriver *NixieDriver::_handler;
 

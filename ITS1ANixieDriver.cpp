@@ -18,7 +18,7 @@ static const byte gridPins[6] = {
 };
 
 static const byte tubeOrder[6] = {
-	2, 3, 0, 1, 4, 5
+	2, 0, 3, 4, 1, 5
 };
 
 // Digit to segPins indices
