@@ -7,7 +7,7 @@
 
 #ifndef LIBRARIES_NIXIEDRIVER_ITS1ANIXIEDRIVER_H_
 #define LIBRARIES_NIXIEDRIVER_ITS1ANIXIEDRIVER_H_
-
+#ifdef ESP8266
 #include <NixieDriver.h>
 
 
@@ -26,7 +26,7 @@ public:
 		this->setTimeU = setTimeU;
 	}
 
-	static const unsigned long segMap[];
+	static const uint32_t segMap[];
 
 	/*
 	 * Overflow-safe timer that can also be enabled/disabled
@@ -36,22 +36,22 @@ public:
 		Timer(unsigned int duration) : duration(duration), enabled(false), lastTick(0) {}
 		Timer() : duration(0), enabled(false), lastTick(0) {}
 
-		ICACHE_RAM_ATTR bool expired(uint32_t now);
-		ICACHE_RAM_ATTR void init(uint32_t now, unsigned int duration);
-		ICACHE_RAM_ATTR void clear();
+		NIXIE_DRIVER_ISR_FLAG bool expired(uint32_t now);
+		NIXIE_DRIVER_ISR_FLAG void init(uint32_t now, unsigned int duration);
+		NIXIE_DRIVER_ISR_FLAG void clear();
 	private:
-		bool enabled = false;
 		unsigned int duration;
+		bool enabled = false;
 		uint32_t lastTick;
 	};
 
 protected:
-	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask);
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit);
-	virtual unsigned long ICACHE_RAM_ATTR getMultiplexPins();
-	virtual unsigned long ICACHE_RAM_ATTR convertPolarity(unsigned long pins);
-	virtual bool ICACHE_RAM_ATTR calculateFade(unsigned long nowMs);
-	virtual void ICACHE_RAM_ATTR interruptHandler();
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit);
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getMultiplexPins();
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG convertPolarity(uint32_t pins);
+	virtual bool NIXIE_DRIVER_ISR_FLAG calculateFade(uint32_t nowMs);
+	virtual void NIXIE_DRIVER_ISR_FLAG interruptHandler();
 
 private:
 	byte numTubes = 1;
@@ -60,5 +60,5 @@ private:
 	unsigned int resetTimeU = 3500;
 	unsigned int setTimeU = 150;
 };
-
+#endif /* ESP8266 */
 #endif /* LIBRARIES_NIXIEDRIVER_ITS1ANIXIEDRIVER_H_ */

@@ -22,9 +22,9 @@ public:
 	virtual ~HV5523NixieClockMultiplex() {}
 
 protected:
-	static const unsigned long multiplexMap[6];
+	static DRAM_CONST const uint32_t multiplexMap[6];
 
-	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) {
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask) {
 		if (colonMask & (1 << multiplexCount)) {
 			return 0x100000;
 		} else {
@@ -32,7 +32,7 @@ protected:
 		}
 	}
 
-	virtual unsigned long ICACHE_RAM_ATTR getMultiplexPins() {
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getMultiplexPins() {
 		if (cycleCount >= 2) {
 			return multiplexMap[multiplexCount];
 		} else {

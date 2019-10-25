@@ -18,18 +18,18 @@ public:
 
 protected:
 
-	static const unsigned long nixieDigitMap[13];
-	static const unsigned long colonMap[4];
-	static unsigned long currentColonMap[4];
+	static DRAM_CONST const uint32_t nixieDigitMap[13];
+	static DRAM_CONST const uint32_t colonMap[4];
+	static uint32_t currentColonMap[4];
 
-	static const unsigned long dp1 = 0x100000;
-	static const unsigned long dp2 = 0x200000;
+	static DRAM_CONST const uint32_t dp1 = 0x100000;
+	static DRAM_CONST const uint32_t dp2 = 0x200000;
 
 	virtual uint8_t getSPIMode() { return SPI_MODE1; }
 	virtual void cacheColonMap();
-	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) { return currentColonMap[mask]; }
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
-	virtual unsigned long ICACHE_RAM_ATTR convertPolarity(unsigned long pins) { return pins ^ 0xffffffff; }
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit);
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG convertPolarity(uint32_t pins);
 };
 
 #endif /* LIBRARIES_NIXIEDRIVER_HV5523INVNIXIEDRIVER_H_ */

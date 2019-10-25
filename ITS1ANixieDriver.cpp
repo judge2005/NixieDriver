@@ -4,7 +4,7 @@
  *  Created on: Dec 3, 2017
  *      Author: Paul Andrews
  */
-
+#ifdef ESP8266
 #include <ITS1ANixieDriver.h>
 
 static const byte ANODE_PIN = 6;
@@ -22,7 +22,7 @@ static const byte tubeOrder[6] = {
 };
 
 // Digit to segPins indices
-const unsigned long ITS1ANixieDriver::segMap[13] = {
+const uint32_t ITS1ANixieDriver::segMap[13] = {
 	0x3F,		// 0
 	0x06,		// 1
 	0x5B,		// 2
@@ -39,7 +39,7 @@ const unsigned long ITS1ANixieDriver::segMap[13] = {
 };
 
 // Digit to segPins indices
-static const unsigned long down1SegMap[13] = {
+static const uint32_t down1SegMap[13] = {
 	0x54,		// 0
 	0x04,		// 1
 	0x4C,		// 2
@@ -56,7 +56,7 @@ static const unsigned long down1SegMap[13] = {
 };
 
 // Digit to segPins indices
-static const unsigned long down2SegMap[13] = {
+static const uint32_t down2SegMap[13] = {
 	0x08,		// 0
 	0x00,		// 1
 	0x08,		// 2
@@ -73,7 +73,7 @@ static const unsigned long down2SegMap[13] = {
 };
 
 // Digit to segPins indices
-static const unsigned long up1SegMap[13] = {
+static const uint32_t up1SegMap[13] = {
 	0x62,		// 0
 	0x02,		// 1
 	0x61,		// 2
@@ -90,7 +90,7 @@ static const unsigned long up1SegMap[13] = {
 };
 
 // Digit to segPins indices
-static const unsigned long up2SegMap[13] = {
+static const uint32_t up2SegMap[13] = {
 	0x01,		// 0
 	0x00,		// 1
 	0x01,		// 2
@@ -107,7 +107,7 @@ static const unsigned long up2SegMap[13] = {
 };
 
 // Digit to segPins indices
-static const unsigned long emptySegMap[13] = {
+static const uint32_t emptySegMap[13] = {
 	0x00,		// 0
 	0x00,		// 1
 	0x00,		// 2
@@ -123,7 +123,7 @@ static const unsigned long emptySegMap[13] = {
 	0x0, 		// Nothing
 };
 
-static const unsigned long *scrollDownMaps[6] = {
+static const uint32_t *scrollDownMaps[6] = {
 		down1SegMap,
 		down2SegMap,
 		emptySegMap,
@@ -132,7 +132,7 @@ static const unsigned long *scrollDownMaps[6] = {
 		ITS1ANixieDriver::segMap
 };
 
-static const unsigned long *scrollUpMaps[6] = {
+static const uint32_t *scrollUpMaps[6] = {
 		up1SegMap,
 		up2SegMap,
 		emptySegMap,
@@ -141,8 +141,8 @@ static const unsigned long *scrollUpMaps[6] = {
 		ITS1ANixieDriver::segMap
 };
 
-static const unsigned long *activeSegMap = scrollDownMaps[5];
-static const unsigned long *scrollSegMap = scrollDownMaps[5];
+static const uint32_t *activeSegMap = scrollDownMaps[5];
+static const uint32_t *scrollSegMap = scrollDownMaps[5];
 
 //unsigned char twiDcount = 19; // 100KHz
 unsigned char twiDcount = 1;	// 400KHz
@@ -159,13 +159,13 @@ static unsigned char SDA_PIN = 0, SCL_PIN = 2;
 #define SCL_HIGH()  (GPEC = (1 << SCL_PIN))
 #define SCL_READ()  ((GPI & (1 << SCL_PIN)) != 0)
 
-ICACHE_RAM_ATTR void twiDelay(int count) {
+NIXIE_DRIVER_ISR_FLAG void twiDelay(int count) {
 	unsigned int reg;
 	for(int i=0;i<count;i++)
 		reg = GPI;
 }
 
-ICACHE_RAM_ATTR void writeStop(void){
+NIXIE_DRIVER_ISR_FLAG void writeStop(void){
   uint32_t i = 0;
   SCL_LOW();
   SDA_LOW();
@@ -177,7 +177,7 @@ ICACHE_RAM_ATTR void writeStop(void){
   twiDelay(twiDcount);
 }
 
-ICACHE_RAM_ATTR bool writeBit(bool bit) {
+NIXIE_DRIVER_ISR_FLAG bool writeBit(bool bit) {
   uint32_t i = 0;
   SCL_LOW();
   if (bit) SDA_HIGH();
@@ -189,7 +189,7 @@ ICACHE_RAM_ATTR bool writeBit(bool bit) {
   return true;
 }
 
-ICACHE_RAM_ATTR bool readBit(void) {
+NIXIE_DRIVER_ISR_FLAG bool readBit(void) {
   uint32_t i = 0;
   SCL_LOW();
   SDA_HIGH();
@@ -201,7 +201,7 @@ ICACHE_RAM_ATTR bool readBit(void) {
   return bit;
 }
 
-ICACHE_RAM_ATTR bool writeByte(unsigned char byte) {
+NIXIE_DRIVER_ISR_FLAG bool writeByte(unsigned char byte) {
   unsigned char bit;
   for (bit = 0; bit < 8; bit++) {
     writeBit(byte & 0x80);
@@ -210,7 +210,7 @@ ICACHE_RAM_ATTR bool writeByte(unsigned char byte) {
   return !readBit();//NACK/ACK
 }
 
-ICACHE_RAM_ATTR bool writeBuf(byte *buffer, byte length) {
+NIXIE_DRIVER_ISR_FLAG bool writeBuf(byte *buffer, byte length) {
 	unsigned int i;
 
 	// twi_write_start
@@ -249,7 +249,7 @@ ICACHE_RAM_ATTR bool writeBuf(byte *buffer, byte length) {
 	return true;
 }
 
-ICACHE_RAM_ATTR bool writeValue(unsigned long value) {
+NIXIE_DRIVER_ISR_FLAG bool writeValue(uint32_t value) {
 	byte buffer[2];
 
 	buffer[0] = value & 0xff;
@@ -258,11 +258,11 @@ ICACHE_RAM_ATTR bool writeValue(unsigned long value) {
 	return writeBuf(buffer, 2);
 }
 
-ICACHE_RAM_ATTR bool writePortA(unsigned long value) {
+NIXIE_DRIVER_ISR_FLAG bool writePortA(uint32_t value) {
 	return writeValue((value << 8) | 0x12);
 }
 
-ICACHE_RAM_ATTR bool writePortB(unsigned long value) {
+NIXIE_DRIVER_ISR_FLAG bool writePortB(uint32_t value) {
 	return writeValue((value << 8) | 0x13);
 }
 
@@ -308,7 +308,7 @@ void ITS1ANixieDriver::init() {
 	NixieDriver::init();
 }
 
-unsigned long ITS1ANixieDriver::getPins(byte mask) {
+uint32_t ITS1ANixieDriver::getPins(byte mask) {
 	if (mask != 0) {
 		return 0x80;
 	} else {
@@ -316,21 +316,21 @@ unsigned long ITS1ANixieDriver::getPins(byte mask) {
 	}
 }
 
-unsigned long ITS1ANixieDriver::convertPolarity(unsigned long pins) {
+uint32_t ITS1ANixieDriver::convertPolarity(uint32_t pins) {
 	return pins ^ 0x7F;
 }
 
-unsigned long ITS1ANixieDriver::getMultiplexPins() {
+uint32_t ITS1ANixieDriver::getMultiplexPins() {
 	return 0;
 }
 
-unsigned long ITS1ANixieDriver::getPin(uint32_t digit) {
+uint32_t ITS1ANixieDriver::getPin(uint32_t digit) {
 	return activeSegMap[digit];
 }
 
 static byte scrollIndex = 0;
 
-bool ITS1ANixieDriver::calculateFade(unsigned long nowMs) {
+bool ITS1ANixieDriver::calculateFade(uint32_t nowMs) {
 	if (displayMode == NO_FADE_DELAY) {
 		scrollIndex = 5;
 		scrollSegMap = segMap;
@@ -414,7 +414,7 @@ void ITS1ANixieDriver::interruptHandler() {
 		} else {
 			activeSegMap = segMap;
 		}
-		unsigned long pinMask = colonMask | convertPolarity(getPin(displayDigit));
+		uint32_t pinMask = colonMask | convertPolarity(getPin(displayDigit));
 		writePortA(pinMask);
 		segmentHoldTimer.init(nowU, 0);
 	}
@@ -446,3 +446,4 @@ void ITS1ANixieDriver::interruptHandler() {
 		}
 	}
 }
+#endif /* ESP8266 */

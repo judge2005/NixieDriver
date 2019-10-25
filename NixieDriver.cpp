@@ -8,7 +8,7 @@
 #include <NixieDriver.h>
 #include <SPI.h>
 
-bool ICACHE_RAM_ATTR SoftPWM::off() {
+bool NIXIE_DRIVER_ISR_FLAG SoftPWM::off() {
 	count = (count + quantum) % 100;
 	return count >= onPercent;
 }
@@ -21,6 +21,9 @@ bool ICACHE_RAM_ATTR SoftPWM::off() {
 volatile uint32_t NixieDriver::callCycleCount = ESP.getCpuFreqMHz() * 1024 / 8;
 volatile int NixieDriver::_guard = 0;
 NixieDriver *NixieDriver::_handler;
+#ifdef ESP32
+hw_timer_t *NixieDriver::timer = NULL;
+#endif
 
 // Maps a digit to an index into the pin map.
 byte NixieDriver::digitMap[13] = {
@@ -29,11 +32,19 @@ byte NixieDriver::digitMap[13] = {
 
 void NixieDriver::init() {
 	guard(true);
+
 	if (!_handler) {
 		// First time through, set up interrupt handlers
+#ifdef ESP8266
 		timer0_isr_init();
 		timer0_attachInterrupt(isr);
 		timer0_write(ESP.getCycleCount() + ESP.getCpuFreqMHz() * 1024);	// Wait 2 seconds before displaying
+#elif ESP32
+		timer = timerBegin(0, 80, true); // timer_id = 0; divider=80; countUp = true; So at 80MHz, we have a granularity of 1MHz
+		timerAttachInterrupt(timer, isr, true); // edge = true
+		timerAlarmWrite(timer, 100, true); // Period = 100 micro seconds
+		timerAlarmEnable(timer);
+#endif
 	}
 	_handler = this;
 	guard(false);
@@ -43,11 +54,15 @@ void NixieDriver::init() {
 // weird system calls are being called, because they can do weird
 // things with flash. For the same reason, this function needs to be
 // in RAM.
-void ICACHE_RAM_ATTR NixieDriver::isr() {
+void NIXIE_DRIVER_ISR_FLAG NixieDriver::isr() {
+#ifdef ESP8266
     uint32_t ccount;
     __asm__ __volatile__("esync; rsr %0,ccount":"=a" (ccount));
 
 	timer0_write(ccount + callCycleCount);
+#elif ESP32
+//	timerAlarmWrite(timer, 1000, false);	// Once per ms
+#endif
 
 	if (_guard == 0) {
 		if (_handler) {
@@ -56,64 +71,10 @@ void ICACHE_RAM_ATTR NixieDriver::isr() {
 	}
 }
 
-void ICACHE_RAM_ATTR NixieDriver::guard(bool flag) {
+void NIXIE_DRIVER_ISR_FLAG NixieDriver::guard(bool flag) {
 	noInterrupts();
 	flag ? _guard++ : _guard--;
 	interrupts();
-}
-
-bool ICACHE_RAM_ATTR NixieDriver::calculateFade(unsigned long nowMs) {
-	displayPWM.onPercent = fadeOutPWM.onPercent = brightness;
-	fadeInPWM.onPercent = 0;
-
-	if ((displayMode == FADE_OUT_IN && nowMs - startFade > FADE_TIME2)
-			|| (displayMode != FADE_OUT_IN && nowMs - startFade > FADE_TIME)) {
-		// Fading lasts at most FADE_TIME ms
-		return false;
-	}
-
-	long fadeOutDutyCycle = (long) 100 * (FADE_TIME + startFade - nowMs) / FADE_TIME;
-	fadeOutDutyCycle = fadeOutDutyCycle * fadeOutDutyCycle * brightness / 10000;
-	long fadeInDutyCycle = (long) 100 * (nowMs - startFade) / FADE_TIME;
-	fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
-
-	switch (displayMode) {
-	case NO_FADE:
-		return false;
-		break;
-	case NO_FADE_DELAY:
-		if (nowMs - startFade > FADE_TIME / 2) {
-			return false;
-		} else {
-			fadeOutPWM.onPercent = 0;
-		}
-		break;
-	case FADE_OUT:
-		fadeOutPWM.onPercent = fadeOutDutyCycle;
-		break;
-	case FADE_IN:
-		fadeOutPWM.onPercent = 0;
-		fadeInPWM.onPercent = fadeInDutyCycle;
-		break;
-	case CROSS_FADE:
-		fadeOutPWM.onPercent = fadeOutDutyCycle;
-		fadeInPWM.onPercent = fadeInDutyCycle;
-		break;
-	case FADE_OUT_IN:
-		fadeInDutyCycle = (long) 100 * (nowMs - startFade - FADE_TIME) / FADE_TIME;
-		fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
-
-		if (nowMs - startFade <= FADE_TIME) {
-			fadeOutPWM.onPercent = fadeOutDutyCycle;
-			fadeInPWM.onPercent = 0;
-		} else {
-			fadeInPWM.onPercent = fadeInDutyCycle;
-			fadeOutPWM.onPercent = 0;
-		}
-		break;
-	}
-
-	return true;
 }
 
 void NixieDriver::cacheColonMap() {}

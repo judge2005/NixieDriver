@@ -18,23 +18,23 @@ public:
 
 protected:
 
-	static const unsigned long nixieDigitMap[11];
-	static const unsigned long colonMap[4];
-	static const unsigned long multiplexMap[6];
+	static DRAM_CONST const uint32_t nixieDigitMap[11];
+	static DRAM_CONST const uint32_t colonMap[4];
+	static DRAM_CONST const uint32_t multiplexMap[6];
 
-	static const unsigned long dp1 = 0x100000;
-	static const unsigned long dp2 = 0x200000;
+	static DRAM_CONST const uint32_t dp1 = 0x100000;
+	static DRAM_CONST const uint32_t dp2 = 0x200000;
 
 	byte numMultiplex = 1;
 	byte multiplexCount = 0;
 	byte cycleCount = 0;
 	virtual uint8_t getSPIMode() { return SPI_MODE1; }
-	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) { return colonMap[mask]; }
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit) {
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask) { return colonMap[mask]; }
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit) {
 		return nixieDigitMap[(digit >> (multiplexCount << 2)) & 0xf];
 	}
-	virtual unsigned long ICACHE_RAM_ATTR getMultiplexPins() {
-		unsigned long pins = 0;
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getMultiplexPins() {
+		uint32_t pins = 0;
 		if (cycleCount >= 1) {
 			pins = multiplexMap[multiplexCount];
 		}
@@ -46,7 +46,7 @@ protected:
 
 		return pins;
 	}
-	virtual unsigned long ICACHE_RAM_ATTR convertPolarity(unsigned long pins) { return pins; }
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG convertPolarity(uint32_t pins) { return pins; }
 };
 
 #endif /* LIBRARIES_NIXIEDRIVER_HV5523NIXIEDRIVERMULTIPLEX_H_ */

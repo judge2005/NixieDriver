@@ -8,7 +8,7 @@
 #include <HV5523NixieClockMultiplex.h>
 //#include <SPI.h>
 
-const unsigned long HV5523NixieClockMultiplex::multiplexMap[6] = {
+DRAM_CONST const uint32_t HV5523NixieClockMultiplex::multiplexMap[6] = {
 	0x80,	// 1 - HV13
 	0x100,	// 2 - HV14
 	0x200,	// 3 - HV15

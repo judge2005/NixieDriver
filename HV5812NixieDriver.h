@@ -18,16 +18,16 @@ public:
 
 protected:
 
-	static const unsigned long nixieDigitMap[11];
-	static const unsigned long colonMap[4];
+	static DRAM_CONST const uint32_t nixieDigitMap[11];
+	static DRAM_CONST const uint32_t colonMap[4];
 
-	static const unsigned long dp1 = 0x200;
-	static const unsigned long dp2 = 0x100;
+	static DRAM_CONST const uint32_t dp1 = 0x200;
+	static DRAM_CONST const uint32_t dp2 = 0x100;
 
 	virtual uint8_t getSPIMode() { return SPI_MODE3; }
-	virtual unsigned long ICACHE_RAM_ATTR getPins(byte mask) { return colonMap[mask]; }
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
-	virtual unsigned long ICACHE_RAM_ATTR convertPolarity(unsigned long pins) { return pins ^ 0xffffffff; }
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask) { return colonMap[mask]; }
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG convertPolarity(uint32_t pins) { return pins ^ 0xffffffff; }
 };
 
 #endif /* LIBRARIES_NIXIEDRIVER_HV5812NIXIEDRIVER_H_ */

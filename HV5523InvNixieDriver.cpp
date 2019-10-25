@@ -8,7 +8,7 @@
 #include <HV5523InvNixieDriver.h>
 #include <SPI.h>
 
-const unsigned long HV5523InvNixieDriver::nixieDigitMap[13] = {
+DRAM_CONST const uint32_t HV5523InvNixieDriver::nixieDigitMap[13] = {
 	0x80000,	// 0
 	0x400,		// 1
 	0x800,		// 2
@@ -24,19 +24,23 @@ const unsigned long HV5523InvNixieDriver::nixieDigitMap[13] = {
 	0x0, 		// Nothing
 };
 
-const unsigned long HV5523InvNixieDriver::colonMap[4] = {
+DRAM_CONST const uint32_t HV5523InvNixieDriver::colonMap[4] = {
 	0,			// none
 	0x800000,	// left
 	0x400000,	// right
 	0xc00000	// both
 };
 
-unsigned long HV5523InvNixieDriver::currentColonMap[4] = {
+uint32_t HV5523InvNixieDriver::currentColonMap[4] = {
 	0,	// none
 	0,	// none
 	0,	// none
 	0	// none
 };
+
+uint32_t NIXIE_DRIVER_ISR_FLAG HV5523InvNixieDriver::getPins(byte mask) { return currentColonMap[mask]; }
+uint32_t NIXIE_DRIVER_ISR_FLAG HV5523InvNixieDriver::getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
+uint32_t NIXIE_DRIVER_ISR_FLAG HV5523InvNixieDriver::convertPolarity(uint32_t pins) { return pins ^ 0xffffffff; }
 
 void HV5523InvNixieDriver::cacheColonMap() {
 	if (indicator == 0) {

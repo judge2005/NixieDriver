@@ -8,7 +8,7 @@
 #include <HV9808NixieDriver.h>
 #include <SPI.h>
 
-const unsigned long HV9808NixieDriver::nixieDigitMap[11] = {
+DRAM_CONST const uint32_t HV9808NixieDriver::nixieDigitMap[11] = {
 	0x8000,	// 0
 	0x1000000,	// 1
 	0x800000,	// 2
@@ -22,7 +22,7 @@ const unsigned long HV9808NixieDriver::nixieDigitMap[11] = {
 	0x0, // Nothing
 };
 
-const unsigned long HV9808NixieDriver::colonMap[4] = {
+DRAM_CONST const uint32_t HV9808NixieDriver::colonMap[4] = {
 	0,			// 0
 	0x8000000,	// 1
 	0x10000000,	// 2

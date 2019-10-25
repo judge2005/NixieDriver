@@ -8,36 +8,53 @@
 #include <HVNixieDriver.h>
 #include <SPI.h>
 
+static SPIClass *pSPI;
+#ifdef ESP32
+static spi_t *spi;	// Need to get it out so we can access it from an IRAM_ATTR routine
+#endif
+
 void HVNixieDriver::init() {
 	displayMode = NO_FADE;
 	nextDigit = 0;
 
 	// Initialize HV chip
-	SPI.begin();
-	SPI.setFrequency(SPI_CLOCK_DIV2);
-	SPI.setBitOrder(MSBFIRST);
-	SPI.setDataMode(getSPIMode());
+#ifdef ESP8266
+	pSPI = &SPI;
+#elif ESP32
+	pSPI = new SPIClass(HSPI);
+	spi = pSPI->bus();
+#endif
+
+	pSPI->begin();
+	pSPI->setFrequency(SPI_CLOCK_DIV2);
+	pSPI->setBitOrder(MSBFIRST);
+	pSPI->setDataMode(getSPIMode());
+
+#ifdef ESP32
+	spi = pSPI->bus();
+#endif
+
 	pinMode(LEpin, OUTPUT);
 	digitalWrite(LEpin, LOW);
 
-	interruptHandler();
+//	interruptHandler();
 
 	NixieDriver::init();
 }
 
-unsigned long HVNixieDriver::getMultiplexPins() {
+uint32_t HVNixieDriver::getMultiplexPins() {
 	return 0;
 }
 
 void HVNixieDriver::interruptHandler() {
-	static const uint32_t digitMasks[] = {
+	DRAM_CONST static const uint32_t digitMasks[] = {
 		0xfff0,
 		0xff0f,
 		0xf0ff,
 		0x0fff
 	};
-	static unsigned long prevPinMask = 0;
-	unsigned long pinMask = 0;
+	static uint32_t prevPinMask = 0;
+	uint32_t pinMask = 0;
 
 	displayPWM.onPercent = brightness;
 	bool displayOff = displayPWM.off();
@@ -87,6 +104,7 @@ void HVNixieDriver::interruptHandler() {
 
 	prevPinMask = pinMask;
 
+#ifdef ESP8266
 	while(SPI1CMD & SPIBUSY) {}
     // Set Bits to transfer
     const uint32_t mask = ~((SPIMMOSI << SPILMOSI) | (SPIMMISO << SPILMISO));
@@ -102,7 +120,64 @@ void HVNixieDriver::interruptHandler() {
 
     SPI1CMD |= SPIBUSY;
     while(SPI1CMD & SPIBUSY) {}
+#elif ESP32
+    spiWriteLongNL(spi, pinMask);	// This is already flagged with IRAM_ATTR
+#endif
 
 	digitalWrite(LEpin, HIGH);
 	digitalWrite(LEpin, LOW);
+}
+
+bool NIXIE_DRIVER_ISR_FLAG HVNixieDriver::calculateFade(uint32_t nowMs) {
+	displayPWM.onPercent = fadeOutPWM.onPercent = brightness;
+	fadeInPWM.onPercent = 0;
+
+	if ((displayMode == FADE_OUT_IN && nowMs - startFade > FADE_TIME2)
+			|| (displayMode != FADE_OUT_IN && nowMs - startFade > FADE_TIME)) {
+		// Fading lasts at most FADE_TIME ms
+		return false;
+	}
+
+	long fadeOutDutyCycle = (long) 100 * (FADE_TIME + startFade - nowMs) / FADE_TIME;
+	fadeOutDutyCycle = fadeOutDutyCycle * fadeOutDutyCycle * brightness / 10000;
+	long fadeInDutyCycle = (long) 100 * (nowMs - startFade) / FADE_TIME;
+	fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
+
+	switch (displayMode) {
+	case NO_FADE:
+		return false;
+		break;
+	case NO_FADE_DELAY:
+		if (nowMs - startFade > FADE_TIME / 2) {
+			return false;
+		} else {
+			fadeOutPWM.onPercent = 0;
+		}
+		break;
+	case FADE_OUT:
+		fadeOutPWM.onPercent = fadeOutDutyCycle;
+		break;
+	case FADE_IN:
+		fadeOutPWM.onPercent = 0;
+		fadeInPWM.onPercent = fadeInDutyCycle;
+		break;
+	case CROSS_FADE:
+		fadeOutPWM.onPercent = fadeOutDutyCycle;
+		fadeInPWM.onPercent = fadeInDutyCycle;
+		break;
+	case FADE_OUT_IN:
+		fadeInDutyCycle = (long) 100 * (nowMs - startFade - FADE_TIME) / FADE_TIME;
+		fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
+
+		if (nowMs - startFade <= FADE_TIME) {
+			fadeOutPWM.onPercent = fadeOutDutyCycle;
+			fadeInPWM.onPercent = 0;
+		} else {
+			fadeInPWM.onPercent = fadeInDutyCycle;
+			fadeOutPWM.onPercent = 0;
+		}
+		break;
+	}
+
+	return true;
 }

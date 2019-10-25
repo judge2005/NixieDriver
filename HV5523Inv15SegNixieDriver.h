@@ -39,15 +39,16 @@ public:
 protected:
 
 	uint32_t oldDigit = 0;
-	static const unsigned long nixieDigitMap[13];
-	static const unsigned long circularWipeMap[8];
-	static const unsigned long circularWipeEraseMap[8];
-	static const unsigned long circularWipeRevealMap[8];
+	static DRAM_CONST const uint32_t nixieDigitMap[13];
+	static DRAM_CONST const uint32_t circularWipeMap[8];
+	static DRAM_CONST const uint32_t circularWipeEraseMap[8];
+	static DRAM_CONST const uint32_t circularWipeRevealMap[8];
 
 	virtual void cacheColonMap();
 
-	virtual unsigned long ICACHE_RAM_ATTR getPin(uint32_t digit) {
+	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit) {
 		switch (transition) {
+		default:
 		case 0:	// Regular display
 			return 	nixieDigitMap[digit];
 		case 1:	// Blank
