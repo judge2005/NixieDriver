@@ -5,16 +5,19 @@
  *      Author: Paul Andrews
  */
 
-#ifndef LIBRARIES_NIXIEDRIVER_HV5523ESP32NIXIEDRIVER_H_
-#define LIBRARIES_NIXIEDRIVER_HV5523ESP32NIXIEDRIVER_H_
+#ifndef LIBRARIES_NIXIEDRIVER_HV9808ESP32NixieDriverMultiplex_H_
+#define LIBRARIES_NIXIEDRIVER_HV9808ESP32NixieDriverMultiplex_H_
 
 #include <NixieDriver.h>
 #include <SPI.h>
 
-class HV5523ESP32NixieDriver : public NixieDriver {
+class HV9808ESP32NixieDriverMultiplex : public NixieDriver {
 public:
-	HV5523ESP32NixieDriver(int LEpin) : LEpin(LEpin) {}
-	~HV5523ESP32NixieDriver() {}
+	HV9808ESP32NixieDriverMultiplex(int LEpin) : LEpin(LEpin) {}
+	~HV9808ESP32NixieDriverMultiplex() {}
+
+	void setDate(uint32_t date) { this->date = date; }
+	void setColons(uint64_t colons) { this->colons = colons; }
 
 	virtual void setAnimation(Animation animation, int direction);
 	virtual bool supportsAnimation() { return true; }
@@ -31,7 +34,7 @@ protected:
 	static DRAM_CONST const uint32_t dp1 = 0x100000;
 	static DRAM_CONST const uint32_t dp2 = 0x200000;
 
-	uint8_t getSPIMode() { return SPI_MODE1; }
+	uint8_t getSPIMode() { return SPI_MODE0; }
 	virtual void cacheColonMap();
 
 	uint32_t NIXIE_DRIVER_ISR_FLAG getMultiplexPins();
@@ -47,6 +50,8 @@ protected:
 	virtual void NIXIE_DRIVER_ISR_FLAG interruptHandler();
 
 private:
+	volatile uint64_t colons;
+	volatile uint32_t date;
 	volatile Animation animation = ANIMATION_NONE;
 	volatile int animatedDigit = 0;
 	volatile int direction = 0;
@@ -54,7 +59,7 @@ private:
 	SoftPWM animatorPWM = SoftPWM(0, 3);
 
 	static volatile uint32_t callCycleCount;
-	static HV5523ESP32NixieDriver *_handler;
+	static HV9808ESP32NixieDriverMultiplex *_handler;
 #ifdef ESP32
 	static hw_timer_t *timer;
 #endif
@@ -67,4 +72,4 @@ private:
 	static NIXIE_DRIVER_ISR_FLAG void isr();
 };
 
-#endif /* LIBRARIES_NIXIEDRIVER_HV5523ESP32NIXIEDRIVER_H_ */
+#endif /* LIBRARIES_NIXIEDRIVER_HV9808ESP32NixieDriverMultiplex_H_ */

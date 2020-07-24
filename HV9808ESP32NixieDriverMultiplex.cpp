@@ -5,7 +5,7 @@
  *      Author: Paul Andrews
  */
 
-#include <HV5523ESP32NixieDriver.h>
+#include <HV9808ESP32NixieDriverMultiplex.h>
 #include <SPI.h>
 #ifdef ESP32
 #include "esp32-hal-spi.h"
@@ -17,12 +17,12 @@
 static SPIClass *pSPI;
 #ifdef ESP32
 static spi_t *spi;	// Need to get it out so we can access it from an IRAM_ATTR routine
-hw_timer_t *HV5523ESP32NixieDriver::timer = NULL;
+hw_timer_t *HV9808ESP32NixieDriverMultiplex::timer = NULL;
 #endif
 
-HV5523ESP32NixieDriver *HV5523ESP32NixieDriver::_handler;
+HV9808ESP32NixieDriverMultiplex *HV9808ESP32NixieDriverMultiplex::_handler;
 
-DRAM_CONST const uint32_t HV5523ESP32NixieDriver::nixieDigitMap[13] = {
+DRAM_CONST const uint32_t HV9808ESP32NixieDriverMultiplex::nixieDigitMap[13] = {
 	1,	// 0
 	2,		// 1
 	4,		// 2
@@ -42,29 +42,24 @@ DRAM_CONST const uint32_t HV5523ESP32NixieDriver::nixieDigitMap[13] = {
  * 012 = 1 + 800  + 400000 = 400801
  * 345 = 8 + 4000 + 2000000 = 2004008
  */
-DRAM_CONST const uint32_t HV5523ESP32NixieDriver::colonMap[4] = {
+DRAM_CONST const uint32_t HV9808ESP32NixieDriverMultiplex::colonMap[4] = {
 	0,		// none
-	0xf,	// all
-	0x5,	// top
-	0xa		// bottom
+	0x400,	// all
+	0,	// top
+	0x400		// bottom
 };
 
-uint32_t HV5523ESP32NixieDriver::currentColonMap[4] = {
+uint32_t HV9808ESP32NixieDriverMultiplex::currentColonMap[4] = {
 	0,	// none
 	0,	// none
 	0,	// none
 	0	// none
 };
 
-uint32_t NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::getMultiplexPins() { return 0; }
-uint32_t NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::getPins(byte mask) { return colonMap[mask]; }
-uint32_t NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
-uint32_t NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::convertPolarity(uint32_t pins) { return pins ^ 0xffffffff; }
-
-void NIXIE_DRIVER_ISR_FLAG myPause(uint64_t delay) {
-	uint64_t enter = micros();
-	while (micros() - enter < delay);
-}
+uint32_t NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::getMultiplexPins() { return 0; }
+uint32_t NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::getPins(byte mask) { return colonMap[mask]; }
+uint32_t NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
+uint32_t NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::convertPolarity(uint32_t pins) { return pins; }
 
 #ifdef ESP32
 struct spi_struct_t {
@@ -87,7 +82,7 @@ static void NIXIE_DRIVER_ISR_FLAG spiWrite64NL(spi_t * spi, const uint64_t data)
 }
 #endif
 
-void HV5523ESP32NixieDriver::cacheColonMap() {
+void HV9808ESP32NixieDriverMultiplex::cacheColonMap() {
 	if (indicator == 0) {
 		for (int i=0; i<4; i++) {
 			currentColonMap[i] = 0;
@@ -104,7 +99,7 @@ void HV5523ESP32NixieDriver::cacheColonMap() {
 	}
 }
 
-void HV5523ESP32NixieDriver::setAnimation(Animation animation, int direction) {
+void HV9808ESP32NixieDriverMultiplex::setAnimation(Animation animation, int direction) {
 	noInterrupts();
 	this->animation = animation;
 	if (animation != ANIMATION_NONE) {
@@ -116,14 +111,14 @@ void HV5523ESP32NixieDriver::setAnimation(Animation animation, int direction) {
 	interrupts();
 }
 
-bool HV5523ESP32NixieDriver::animationDone() {
+bool HV9808ESP32NixieDriverMultiplex::animationDone() {
 	noInterrupts();
 	bool done = animation == ANIMATION_NONE || 0 > animatedDigit || animatedDigit >= 6;
 	interrupts();
 	return done;
 }
 
-bool NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::adjustAnimation(uint32_t nowMs) {
+bool NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::adjustAnimation(uint32_t nowMs) {
 	bool animating = false;
 
 	if (animation != ANIMATION_NONE) {
@@ -153,7 +148,7 @@ bool NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::adjustAnimation(uint32_t nowM
 	return animating;
 }
 
-bool NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32CalculateFade(uint32_t nowMs) {
+bool NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::esp32CalculateFade(uint32_t nowMs) {
 	displayPWM.onPercent = fadeOutPWM.onPercent = brightness;
 	fadeInPWM.onPercent = 0;
 
@@ -224,7 +219,7 @@ bool NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32CalculateFade(uint32_t n
 	return true;
 }
 
-void HV5523ESP32NixieDriver::init() {
+void HV9808ESP32NixieDriverMultiplex::init() {
 	displayMode = NO_FADE;
 	nextDigit = 0;
 
@@ -269,7 +264,7 @@ void HV5523ESP32NixieDriver::init() {
 #elif ESP32
 		timer = timerBegin(0, 80, true); // timer_id = 0; divider=80; countUp = true; So at 80MHz, we have a granularity of 1MHz
 		timerAttachInterrupt(timer, isr, true); // edge = true
-		timerAlarmWrite(timer, 200, true); // Period = 100 micro seconds
+		timerAlarmWrite(timer, 130, true); // Period = 520 micro seconds, frequency = 1,923Hz
 		timerAlarmEnable(timer);
 #endif
 	}
@@ -281,7 +276,7 @@ void HV5523ESP32NixieDriver::init() {
 // weird system calls are being called, because they can do weird
 // things with flash. For the same reason, this function needs to be
 // in RAM.
-void NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::isr() {
+void NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::isr() {
 #ifdef ESP8266
     uint32_t ccount;
     __asm__ __volatile__("esync; rsr %0,ccount":"=a" (ccount));
@@ -298,91 +293,74 @@ void NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::isr() {
 	}
 }
 
-bool HV5523ESP32NixieDriver::calculateFade(uint32_t nowMs) {
+bool HV9808ESP32NixieDriverMultiplex::calculateFade(uint32_t nowMs) {
 	return true;
 }
 
-void HV5523ESP32NixieDriver::interruptHandler() {
+void HV9808ESP32NixieDriverMultiplex::interruptHandler() {
 }
 
+static inline uint64_t rotl64 (uint64_t n, unsigned int c)
+{
+  const uint64_t mask = (CHAR_BIT*sizeof(n) - 1);  // assumes width is a power of 2.
+
+  // assert ( (c<=mask) &&"rotate by type width or more");
+  c &= mask;
+  return (n<<c) | (n>>( (-c)&mask ));
+}
+
+#define ALL_BLANKS (0xccccccccccccccccULL)
+#define TIME_MASK  (0x00ffffff)
+#define DATE_MASK  (0x00ffffff00000000ULL)
+
 //#define TEST_DRIVER
-void NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32InterruptHandler() {
+#define D_DELAY
+void NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::esp32InterruptHandler() {
+	static uint32_t prevPinMask = 0;
+	static uint32_t tubeMask = 1;
+	static uint32_t digitMask = 1;
+	static uint8_t digit = 0xc;
+	static uint8_t colon = 0;
+	static uint8_t tubeNo = 0;
+	static uint32_t counter = 0;
+	static uint64_t display = ALL_BLANKS;
+	static uint64_t colonMask = 0;
+
 #ifndef TEST_DRIVER
-	static uint64_t prevPinMask = 0;
 
-	uint64_t pinMask = 0;
-	unsigned long nowMs = millis();
-	bool stillFading = esp32CalculateFade(nowMs);
-	displayPWM.onPercent = brightness;
-	bool displayOff = displayPWM.off();
-	bool fadeOutOff = fadeOutPWM.off();
-	bool fadeInOff = fadeInPWM.off();
+	uint32_t dMask = digitMask;
+	uint32_t tMask = tubeMask;
 
-	if (animation != ANIMATION_NONE) {
-		digit = nextDigit;
+#ifdef D_DELAY
+	if (counter == 3 ) {
+		dMask = 0;
 	}
+#endif
 
-	uint32_t d = digit;
-	uint32_t n = nextDigit;
+	uint32_t pinMask = (((tMask << 16) | dMask) ^ 0xffffffff );
 
-	// Seconds are in the LSB
-	for (int i=0; i<6; i++) {
-		byte cd = d & 0xf;
-		byte nd = n & 0xf;
-		uint32_t cMask = 0;
-		if (cd != nd) {
-			if (stillFading) {
-				if (!fadeOutOff) {
-					cMask = getPin(cd);
-				}
+	counter = (counter + 1) % 4;
+	if (counter == 0) {
+		tubeMask = tubeMask << 1;
+		tubeNo++;
+		display = display >> 4;
+		colonMask = colonMask >> 4;
 
-				if (!fadeInOff) {
-					cMask |= getPin(nd);
-				}
-			} else {
-				if (!displayOff) {
-					cMask = getPin(nd);
-				}
-			}
-		} else if (animation != ANIMATION_NONE) {
-			adjustAnimation(nowMs);
-
-			if (i == animatedDigit) {
-				if (!animatorPWM.off()) {
-					cMask = getPin(cd);
-				}
-			} else if (!displayOff) {
-				if (animation == ANIMATION_FADE_OUT) {
-					if (i > animatedDigit && direction > 0) {
-						cMask = getPin(cd);
-					} else if (i < animatedDigit && direction < 0) {
-						cMask = getPin(cd);
-					}
-				} else {
-					if (i > animatedDigit && direction < 0) {
-						cMask = getPin(cd);
-					} else if (i < animatedDigit && direction > 0) {
-						cMask = getPin(cd);
-					}
-				}
-			}
-		} else if (!displayOff) {
-			cMask = getPin(cd);
+		if (tubeMask == 0x10000) {
+			tubeMask = 1;
+			tubeNo = 0;
+			display = nextDigit;
+			display |= (date * 1ULL) << 32;
+			display = rotl64(display, 4);
+			colonMask = rotl64(colons, 4);
 		}
 
-		pinMask |= ((uint64_t)cMask) << (10*i);
-
-		d = d >> 4;
-		n = n >> 4;
+		digit = display & 0xf;
+		colon = colonMask & 0xf;
+		digitMask = getPin(digit);
+		digitMask |= getPins(colon);
 	}
 
-	if (!stillFading) {
-		digit = nextDigit;
-	}
-
-	if (!displayOff) {
-		pinMask |= ((uint64_t)getPins(colonMask)) << 60;
-	}
 
 	if (pinMask == prevPinMask) {
 		return;
@@ -391,22 +369,59 @@ void NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32InterruptHandler() {
 	prevPinMask = pinMask;
 
 #else
-	static uint32_t c = 0;
+	static uint8_t blanks = 0;
+	static long lastMillis = 0;
 
-	uint64_t pinMask = 0;
+	uint32_t dMask = digitMask;
+	uint32_t tMask = tubeMask;
 
-	for (int i=0; i<6; i++) {
-		pinMask |= ((uint64_t)getPin(6)) << (10*i);
+	if (millis() - lastMillis > 1000) {
+		lastMillis = millis();
+		blanks = (blanks + 1) % 16;
 	}
 
-	if ((c/2) % 2 == 0) {
-		pinMask = 0;
+//#define D_DELAY
+#ifdef D_DELAY
+	if (counter == 3 ) {
+		dMask = 0;
 	}
-
-	c++;
 #endif
 
-    //	myPause(2);
+//#define T_DELAY
+#ifdef T_DELAY
+	if (counter < 3) {
+		tMask = 0;
+	}
+#endif
+
+	uint32_t pinMask = (((tMask << 16) | dMask) ^ 0xffffffff );
+
+	counter = (counter + 1) % 4;
+	if (counter == 0) {
+		tubeMask = tubeMask << 1;
+		digit = (digit + 1) % 10;
+		if (tubeMask == 0x10000) {
+			tubeMask = 1;
+		}
+
+		if (tubeMask << 1 == 1 << blanks) {
+			digit = 0;
+		}
+
+		if (tubeMask << 1 < (1 << blanks)) {
+			digitMask = 0;
+		} else {
+			digitMask = nixieDigitMap[digit];
+		}
+	}
+
+	if (pinMask == prevPinMask) {
+		return;
+	}
+
+	prevPinMask = pinMask;
+#endif
+
 #ifdef ESP8266
     union {
             uint32_t l;
@@ -435,12 +450,8 @@ void NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32InterruptHandler() {
     SPI1CMD |= SPIBUSY;
     while(SPI1CMD & SPIBUSY) {}
 #elif ESP32
-	uint64_t cMask = pinMask ^ 0xffffffffffffffffULL;
-	spiWrite64NL(spi, cMask);
-//	spiWriteLongNL(spi, convertPolarity((pinMask >> 32) & 0xffffffff));	// This is already flagged with IRAM_ATTR
-//	spiWriteLongNL(spi, convertPolarity(pinMask & 0xffffffff));	// This is already flagged with IRAM_ATTR
+	spiWriteLongNL(spi, pinMask);	// This is already flagged with IRAM_ATTR
 #endif
-//	myPause(2);
 	digitalWrite(LEpin, HIGH);
 	digitalWrite(LEpin, LOW);
 //	digitalWrite(LEpin, HIGH);

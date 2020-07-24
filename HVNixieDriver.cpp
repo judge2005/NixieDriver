@@ -26,7 +26,7 @@ void HVNixieDriver::init() {
 #endif
 
 	pSPI->begin();
-	pSPI->setFrequency(SPI_CLOCK_DIV2);
+	pSPI->setFrequency(10000000L);
 	pSPI->setBitOrder(MSBFIRST);
 	pSPI->setDataMode(getSPIMode());
 

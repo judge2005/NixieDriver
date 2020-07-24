@@ -54,14 +54,20 @@ public:
 		NO_FADE
 	};
 
+	enum Animation {
+		ANIMATION_NONE,
+		ANIMATION_FADE_OUT,
+		ANIMATION_FADE_IN
+	};
+
 	virtual void init();
 	virtual ~NixieDriver() {}
 	static void guard(const bool flag);
 	static void setPWMFreq(int pwm_freq) {
-		callCycleCount = ESP.getCpuFreqMHz() * 1000000L / pwm_freq;
+		callCycleCount = ESP.getCpuFreqMHz() * 1024000L / pwm_freq;
 	}
 	static int getPWMFreq(int pwm_freq) {
-		return ESP.getCpuFreqMHz() * 1000000L / callCycleCount;
+		return ESP.getCpuFreqMHz() * 1024000L / callCycleCount;
 	}
 	inline void setMode(const DisplayMode mode) {
 		displayMode = mode;
@@ -132,6 +138,9 @@ public:
 
 		cacheColonMap();
 	}
+	virtual void setAnimation(Animation animation, int direction) {}
+	virtual bool supportsAnimation() { return false; }
+	virtual bool animationDone() { return true; }
 
 protected:
 	virtual void NIXIE_DRIVER_ISR_FLAG interruptHandler() = 0;
