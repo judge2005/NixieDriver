@@ -10,6 +10,8 @@
 #ifdef ESP32
 #include "esp32-hal-spi.h"
 #include "soc/spi_struct.h"
+#else
+#include <limits.h>
 #endif
 
 #define ANIMATION_TIME 300
