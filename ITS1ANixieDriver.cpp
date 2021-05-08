@@ -331,7 +331,7 @@ uint32_t ITS1ANixieDriver::getPin(uint32_t digit) {
 static byte scrollIndex = 0;
 
 bool ITS1ANixieDriver::calculateFade(uint32_t nowMs) {
-	if (displayMode == NO_FADE_DELAY) {
+	if (displayMode == NO_FADE_DELAY || displayMode == NO_FADE) {
 		scrollIndex = 5;
 		scrollSegMap = segMap;
 		return false;

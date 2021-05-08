@@ -51,7 +51,8 @@ public:
 		FADE_IN,
 		FADE_OUT_IN,
 		CROSS_FADE,
-		NO_FADE
+		NO_FADE,
+		CROSS_FADE_FAST
 	};
 
 	enum Animation {
@@ -168,6 +169,7 @@ protected:
 	SoftPWM displayPWM = SoftPWM(100, 2);
 	#define FADE_CHANGE_QUANT 1
 	#define FADE_TIME 600
+	#define FADE_FAST_TIME 300
 	#define FADE_TIME2 1200
 
 	static volatile int _guard;

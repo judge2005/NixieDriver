@@ -8,6 +8,8 @@
 #include <NixieDriver.h>
 #include <SPI.h>
 
+//#define TIMER_1
+
 bool NIXIE_DRIVER_ISR_FLAG SoftPWM::off() {
 	count = (count + quantum) % 100;
 	return count >= onPercent;
@@ -36,9 +38,15 @@ void NixieDriver::init() {
 	if (!_handler) {
 		// First time through, set up interrupt handlers
 #ifdef ESP8266
+#ifdef TIMER_1
+	    timer1_attachInterrupt(isr);
+	    timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
+	    timer1_write(2000000 * 5); // 2s
+#else
 		timer0_isr_init();
 		timer0_attachInterrupt(isr);
 		timer0_write(ESP.getCycleCount() + ESP.getCpuFreqMHz() * 1024);	// Wait 2 seconds before displaying
+#endif
 #elif ESP32
 		timer = timerBegin(0, 80, true); // timer_id = 0; divider=80; countUp = true; So at 80MHz, we have a granularity of 1MHz
 		timerAttachInterrupt(timer, isr, true); // edge = true
@@ -59,7 +67,11 @@ void NIXIE_DRIVER_ISR_FLAG NixieDriver::isr() {
     uint32_t ccount;
     __asm__ __volatile__("esync; rsr %0,ccount":"=a" (ccount));
 
+#ifdef TIMER_1
+    timer1_write(128 * 5);	// 128 microseconds
+#else
 	timer0_write(ccount + callCycleCount);
+#endif
 #elif ESP32
 //	timerAlarmWrite(timer, 1000, false);	// Once per ms
 #endif

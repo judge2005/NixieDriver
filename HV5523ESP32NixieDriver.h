@@ -14,6 +14,7 @@
 class HV5523ESP32NixieDriver : public NixieDriver {
 public:
 	HV5523ESP32NixieDriver(int LEpin) : LEpin(LEpin) {}
+	HV5523ESP32NixieDriver(int LEpin, bool small) : LEpin(LEpin), small(small) {}
 	~HV5523ESP32NixieDriver() {}
 
 	virtual void setAnimation(Animation animation, int direction);
@@ -23,10 +24,10 @@ public:
 
 protected:
 	int LEpin;
-
-	static DRAM_CONST const uint32_t nixieDigitMap[13];
-	static DRAM_CONST const uint32_t colonMap[4];
-	static uint32_t currentColonMap[4];
+	bool small = false;
+	static DRAM_CONST const uint32_t nixieDigitMap[16];
+	static DRAM_CONST const uint32_t colonMap[6];
+	static uint32_t currentColonMap[4];	// Not used
 
 	static DRAM_CONST const uint32_t dp1 = 0x100000;
 	static DRAM_CONST const uint32_t dp2 = 0x200000;

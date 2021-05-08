@@ -132,23 +132,34 @@ bool NIXIE_DRIVER_ISR_FLAG HVNixieDriver::calculateFade(uint32_t nowMs) {
 	displayPWM.onPercent = fadeOutPWM.onPercent = brightness;
 	fadeInPWM.onPercent = 0;
 
-	if ((displayMode == FADE_OUT_IN && nowMs - startFade > FADE_TIME2)
-			|| (displayMode != FADE_OUT_IN && nowMs - startFade > FADE_TIME)) {
+	uint32_t fadeTime = FADE_TIME;
+	uint32_t effectTime = FADE_TIME;
+	if (displayMode == FADE_OUT_IN) {
+		effectTime = FADE_TIME2;
+	}
+	if (displayMode == CROSS_FADE_FAST) {
+		fadeTime = effectTime = FADE_FAST_TIME;
+	}
+
+	if (nowMs - startFade > effectTime) {
 		// Fading lasts at most FADE_TIME ms
 		return false;
 	}
 
-	long fadeOutDutyCycle = (long) 100 * (FADE_TIME + startFade - nowMs) / FADE_TIME;
+	long fadeOutDutyCycle = (long) 100 * (fadeTime + startFade - nowMs) / fadeTime;
 	fadeOutDutyCycle = fadeOutDutyCycle * fadeOutDutyCycle * brightness / 10000;
-	long fadeInDutyCycle = (long) 100 * (nowMs - startFade) / FADE_TIME;
+	long fadeInDutyCycle = (long) 100 * (nowMs - startFade) / fadeTime;
 	fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
+	if (fadeInDutyCycle < fadeInPWM.quantum) {
+		fadeInDutyCycle = fadeInPWM.quantum + 1;
+	}
 
 	switch (displayMode) {
 	case NO_FADE:
 		return false;
 		break;
 	case NO_FADE_DELAY:
-		if (nowMs - startFade > FADE_TIME / 2) {
+		if (nowMs - startFade > fadeTime / 2) {
 			return false;
 		} else {
 			fadeOutPWM.onPercent = 0;
@@ -162,14 +173,15 @@ bool NIXIE_DRIVER_ISR_FLAG HVNixieDriver::calculateFade(uint32_t nowMs) {
 		fadeInPWM.onPercent = fadeInDutyCycle;
 		break;
 	case CROSS_FADE:
+	case CROSS_FADE_FAST:
 		fadeOutPWM.onPercent = fadeOutDutyCycle;
 		fadeInPWM.onPercent = fadeInDutyCycle;
 		break;
 	case FADE_OUT_IN:
-		fadeInDutyCycle = (long) 100 * (nowMs - startFade - FADE_TIME) / FADE_TIME;
+		fadeInDutyCycle = (long) 100 * (nowMs - startFade - fadeTime) / fadeTime;
 		fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
 
-		if (nowMs - startFade <= FADE_TIME) {
+		if (nowMs - startFade <= fadeTime) {
 			fadeOutPWM.onPercent = fadeOutDutyCycle;
 			fadeInPWM.onPercent = 0;
 		} else {
