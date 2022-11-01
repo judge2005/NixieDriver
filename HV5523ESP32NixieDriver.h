@@ -27,7 +27,7 @@ protected:
 	bool small = false;
 	static DRAM_CONST const uint32_t nixieDigitMap[16];
 	static DRAM_CONST const uint32_t colonMap[6];
-	static uint32_t currentColonMap[4];	// Not used
+	static uint32_t currentColonMap[6];	// Not used
 
 	static DRAM_CONST const uint32_t dp1 = 0x100000;
 	static DRAM_CONST const uint32_t dp2 = 0x200000;

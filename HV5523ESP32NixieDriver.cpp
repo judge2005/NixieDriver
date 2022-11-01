@@ -54,7 +54,9 @@ DRAM_CONST const uint32_t HV5523ESP32NixieDriver::colonMap[6] = {
 	0xc		// right (maybe)
 };
 
-uint32_t HV5523ESP32NixieDriver::currentColonMap[4] = {
+uint32_t HV5523ESP32NixieDriver::currentColonMap[6] = {
+	0,	// none
+	0,	// none
 	0,	// none
 	0,	// none
 	0,	// none
@@ -66,7 +68,7 @@ uint32_t NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::getPins(byte mask) { retu
 uint32_t NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
 uint32_t NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::convertPolarity(uint32_t pins) { return pins ^ 0xffffffff; }
 
-void NIXIE_DRIVER_ISR_FLAG myPause(uint64_t delay) {
+static void NIXIE_DRIVER_ISR_FLAG myPause(uint64_t delay) {
 	uint64_t enter = micros();
 	while (micros() - enter < delay);
 }
@@ -170,13 +172,14 @@ bool NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::adjustAnimation(uint32_t nowM
 }
 
 bool NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32CalculateFade(uint32_t nowMs) {
-	displayPWM.onPercent = fadeOutPWM.onPercent = brightness;
+	displayPWM.onPercent = brightness;
+	fadeOutPWM.onPercent = 100;
 	fadeInPWM.onPercent = 0;
 
 	uint32_t fadeTime = FADE_TIME;
 	uint32_t effectTime = FADE_TIME;
 	if (displayMode == FADE_OUT_IN) {
-		effectTime = FADE_TIME2;
+		fadeTime = FADE_FAST_TIME;
 	}
 	if (displayMode == CROSS_FADE_FAST) {
 		fadeTime = effectTime = FADE_FAST_TIME;
@@ -187,48 +190,12 @@ bool NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32CalculateFade(uint32_t n
 		return false;
 	}
 
-	if ((displayMode == FADE_OUT_IN && nowMs - startFade > FADE_TIME2)
-			|| (displayMode != FADE_OUT_IN && nowMs - startFade > FADE_TIME)) {
-		// Fading lasts at most FADE_TIME ms
-		return false;
-	}
+	long fadeOutDutyCycle = (long) 100 * (fadeTime + startFade - nowMs) / fadeTime;
+	fadeOutDutyCycle = fadeOutDutyCycle * fadeOutDutyCycle / 100;
+	long fadeInDutyCycle = (long) 100 * (nowMs - startFade) / fadeTime;
+	fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle / 100;
 
-	long fadeOutDutyCycle = (long) 100 * (FADE_TIME + startFade - nowMs) / FADE_TIME;
-	fadeOutDutyCycle = fadeOutDutyCycle * fadeOutDutyCycle * brightness / 10000;
-	long fadeInDutyCycle = (long) 100 * (nowMs - startFade) / FADE_TIME;
-	fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
-
-	// Apparently switch statements are flaky in ISRs too...
-#ifdef SWITCH_IN_ISR_WORKS
-	switch (displayMode) {
-	case NO_FADE:
-	case NO_FADE_DELAY:
-		return false;
-	case FADE_OUT:
-		fadeOutPWM.onPercent = fadeOutDutyCycle;
-		break;
-	case FADE_IN:
-		fadeOutPWM.onPercent = 0;
-		fadeInPWM.onPercent = fadeInDutyCycle;
-		break;
-	case CROSS_FADE:
-		fadeOutPWM.onPercent = fadeOutDutyCycle;
-		fadeInPWM.onPercent = fadeInDutyCycle;
-		break;
-	case FADE_OUT_IN:
-		fadeInDutyCycle = (long) 100 * (nowMs - startFade - FADE_TIME) / FADE_TIME;
-		fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
-
-		if (nowMs - startFade <= FADE_TIME) {
-			fadeOutPWM.onPercent = fadeOutDutyCycle;
-			fadeInPWM.onPercent = 0;
-		} else {
-			fadeInPWM.onPercent = fadeInDutyCycle;
-			fadeOutPWM.onPercent = 0;
-		}
-		break;
-	}
-#endif
+	// Apparently switch statements are flaky in ISRs, so if then else
 	if (displayMode == NO_FADE || displayMode == NO_FADE_DELAY) {
 		return false;
 	} else if (displayMode == FADE_OUT) {
@@ -240,10 +207,10 @@ bool NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32CalculateFade(uint32_t n
 		fadeOutPWM.onPercent = fadeOutDutyCycle;
 		fadeInPWM.onPercent = fadeInDutyCycle;
 	} else if (displayMode == FADE_OUT_IN) {
-		fadeInDutyCycle = (long) 100 * (nowMs - startFade - FADE_TIME) / FADE_TIME;
-		fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle * brightness / 10000;
+		fadeInDutyCycle = (long) 100 * (nowMs - startFade - fadeTime) / fadeTime;
+		fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle / 100;
 
-		if (nowMs - startFade <= FADE_TIME) {
+		if (nowMs - startFade <= fadeTime) {
 			fadeOutPWM.onPercent = fadeOutDutyCycle;
 			fadeInPWM.onPercent = 0;
 		} else {
@@ -344,7 +311,6 @@ void NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32InterruptHandler() {
 	uint64_t pinMask = 0;
 	unsigned long nowMs = millis();
 	bool stillFading = esp32CalculateFade(nowMs);
-	displayPWM.onPercent = brightness;
 	bool displayOff = displayPWM.off();
 	bool fadeOutOff = fadeOutPWM.off();
 	bool fadeInOff = fadeInPWM.off();
@@ -356,19 +322,21 @@ void NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32InterruptHandler() {
 	uint32_t d = digit;
 	uint32_t n = nextDigit;
 
-	// Seconds are in the LSB
+	// Seconds are in the MSB
 	for (int i=0; i<6; i++) {
 		byte cd = d & 0xf;
 		byte nd = n & 0xf;
 		uint32_t cMask = 0;
 		if (cd != nd) {
 			if (stillFading) {
-				if (!fadeOutOff) {
-					cMask = getPin(cd);
-				}
+				if (!displayOff) {
+					if (!fadeOutOff) {
+						cMask = getPin(cd);
+					}
 
-				if (!fadeInOff) {
-					cMask |= getPin(nd);
+					if (!fadeInOff) {
+						cMask |= getPin(nd);
+					}
 				}
 			} else {
 				if (!displayOff) {
@@ -415,12 +383,14 @@ void NIXIE_DRIVER_ISR_FLAG HV5523ESP32NixieDriver::esp32InterruptHandler() {
 
 	if (colonMask != prevColonMask) {
 		if (stillFading) {
-			if (!fadeOutOff) {
-				cMask = getPins(prevColonMask);
-			}
+			if (!displayOff) {
+				if (!fadeOutOff) {
+					cMask = getPins(prevColonMask);
+				}
 
-			if (!fadeInOff) {
-				cMask |= getPins(colonMask);
+				if (!fadeInOff) {
+					cMask |= getPins(colonMask);
+				}
 			}
 		} else {
 			if (!displayOff) {

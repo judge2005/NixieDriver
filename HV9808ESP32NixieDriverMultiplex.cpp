@@ -339,9 +339,6 @@ void NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::esp32InterruptHandle
 	}
 #endif
 
-	uint32_t pinMask = (((tMask << 16) | dMask) ^ 0xffffffff );
-
-	counter = (counter + 1) % 4;
 	if (counter == 0) {
 		tubeMask = tubeMask << 1;
 		tubeNo++;
@@ -361,8 +358,14 @@ void NIXIE_DRIVER_ISR_FLAG HV9808ESP32NixieDriverMultiplex::esp32InterruptHandle
 		colon = colonMask & 0xf;
 		digitMask = getPin(digit);
 		digitMask |= getPins(colon);
+
+		dMask = digitMask;
+		tMask = tubeMask;
 	}
 
+	uint32_t pinMask = (((tMask << 16) | dMask) ^ 0xffffffff );
+
+	counter = (counter + 1) % 4;
 
 	if (pinMask == prevPinMask) {
 		return;
