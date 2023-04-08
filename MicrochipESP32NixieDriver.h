@@ -1,39 +1,66 @@
 /*
- * HV9808NixieDriver.h
+ * MicrochipESP32NixieDriver.h
  *
- *  Created on: Dec 3, 2017
+ *  Created on: Feb 10, 2023
  *      Author: Paul Andrews
  */
 
-#ifndef LIBRARIES_NIXIEDRIVER_HV9808ESP32NIXIEDRIVER_H_
-#define LIBRARIES_NIXIEDRIVER_HV9808ESP32NIXIEDRIVER_H_
+#ifndef LIBRARIES_NIXIEDRIVER_MICROCHIPESP32NIXIEDRIVER_H_
+#define LIBRARIES_NIXIEDRIVER_MICROCHIPESP32NIXIEDRIVER_H_
 
 #include <NixieDriver.h>
+#include <BitOrder.h>
+#include <DigitOrder.h>
+#include <Polarity.h>
 #include <SPI.h>
 
-class HV9808ESP32NixieDriver : public NixieDriver {
+/*
+ * The driver
+ */
+class MicrochipESP32NixieDriver : public NixieDriver {
 public:
-	HV9808ESP32NixieDriver(int LEpin) : LEpin(LEpin) {}
-	HV9808ESP32NixieDriver(int LEpin, bool small) : LEpin(LEpin), small(small) {}
-	~HV9808ESP32NixieDriver() {}
+	MicrochipESP32NixieDriver(int LEpin, DigitOrder digitOrder, BitOrder bitOrder, Polarity polarity) :
+		LEpin(LEpin), digitShift(digitOrder), bitOrder(bitOrder), invert(polarity)
+	{
+		copyDigitMap(defaultDigitMap);
+	}
+
+	MicrochipESP32NixieDriver(int LEpin, DigitOrder digitOrder, BitOrder bitOrder, Polarity polarity, const uint32_t digitMap[]) :
+		LEpin(LEpin), digitShift(digitOrder), bitOrder(bitOrder), invert(polarity)
+	{
+		copyDigitMap(digitMap);
+	}
+
+	~MicrochipESP32NixieDriver() {}
 
 	virtual void setAnimation(Animation animation, int direction);
 	virtual bool supportsAnimation() { return true; }
 	virtual bool animationDone();
 	virtual void init();
 
+	static const int DIGIT_MAP_SIZE = 16;
+	static DRAM_CONST const uint32_t cd27DigitMap[DIGIT_MAP_SIZE];
+	static DRAM_CONST const uint32_t defaultDigitMap[DIGIT_MAP_SIZE];
 protected:
 	int LEpin;
-	bool small = false;
-	static DRAM_CONST const uint32_t nixieDigitMap[16];
+	DigitOrder digitShift;
+	BitOrder bitOrder;
+	Polarity invert;
+
+	static uint32_t currentDigitMap[DIGIT_MAP_SIZE];
 	static DRAM_CONST const uint32_t colonMap[6];
 	static uint32_t currentColonMap[6];	// Not used
 
 	static DRAM_CONST const uint32_t dp1 = 0x100000;
 	static DRAM_CONST const uint32_t dp2 = 0x200000;
 
-	uint8_t getSPIMode() { return SPI_MODE0; }
+	uint8_t getSPIMode() { return SPI_MODE1; }
 	virtual void cacheColonMap();
+	void copyDigitMap(const uint32_t digitMap[DIGIT_MAP_SIZE]) {
+		for (int i=0; i<DIGIT_MAP_SIZE; i++) {
+			currentDigitMap[i] = digitMap[i];
+		}
+	}
 
 	uint32_t NIXIE_DRIVER_ISR_FLAG getMultiplexPins();
 	uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
@@ -55,7 +82,7 @@ private:
 	SoftPWM animatorPWM = SoftPWM(0, 3);
 
 	static volatile uint32_t callCycleCount;
-	static HV9808ESP32NixieDriver *_handler;
+	static MicrochipESP32NixieDriver *_handler;
 #ifdef ESP32
 	static hw_timer_t *timer;
 #endif
@@ -68,4 +95,4 @@ private:
 	static NIXIE_DRIVER_ISR_FLAG void isr();
 };
 
-#endif /* LIBRARIES_NIXIEDRIVER_HV9808ESP32NIXIEDRIVER_H_ */
+#endif /* LIBRARIES_NIXIEDRIVER_MICROCHIPESP32NIXIEDRIVER_H_ */

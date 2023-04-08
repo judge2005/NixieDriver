@@ -1,22 +1,30 @@
 /*
- * HV5523NixieDriver.h
+ * MicrochipESP327SegDriver.h
  *
- *  Created on: Dec 3, 2017
+ *  Created on: May 22, 2021
  *      Author: Paul Andrews
  */
 
-#ifndef LIBRARIES_NIXIEDRIVER_HV5523ESP32NIXIEDRIVER_H_
-#define LIBRARIES_NIXIEDRIVER_HV5523ESP32NIXIEDRIVER_H_
+#ifndef LIBRARIES_NIXIEDRIVER_MicrochipESP327SegDriver_H_
+#define LIBRARIES_NIXIEDRIVER_MicrochipESP327SegDriver_H_
 
 #include <NixieDriver.h>
 #include <SPI.h>
+#include <BitOrder.h>
+#include <DigitOrder.h>
+#include <Polarity.h>
 
-class HV5523ESP32NixieDriver : public NixieDriver {
+class MicrochipESP327SegDriver : public NixieDriver {
 public:
-	HV5523ESP32NixieDriver(int LEpin) : LEpin(LEpin) {}
-	HV5523ESP32NixieDriver(int LEpin, bool small) : LEpin(LEpin), small(small) {}
-	~HV5523ESP32NixieDriver() {}
+	MicrochipESP327SegDriver(int LEpin, DigitOrder digitOrder, BitOrder bitOrder, Polarity polarity) :
+		LEpin(LEpin), digitShift(digitOrder), bitOrder(bitOrder), invert(polarity)
+	{
 
+	}
+
+	~MicrochipESP327SegDriver() {}
+
+	virtual void setNumDigits(int numDigits);
 	virtual void setAnimation(Animation animation, int direction);
 	virtual bool supportsAnimation() { return true; }
 	virtual bool animationDone();
@@ -24,10 +32,14 @@ public:
 
 protected:
 	int LEpin;
-	bool small = false;
-	static DRAM_CONST const uint32_t nixieDigitMap[16];
-	static DRAM_CONST const uint32_t colonMap[6];
-	static uint32_t currentColonMap[6];	// Not used
+	DigitOrder digitShift;
+	BitOrder bitOrder;
+	Polarity invert;
+
+	static DRAM_CONST const uint32_t digitShiftMap[6];
+
+	static DRAM_CONST const uint32_t segMap[];
+	static DRAM_CONST const uint64_t colonMap[6];
 
 	static DRAM_CONST const uint32_t dp1 = 0x100000;
 	static DRAM_CONST const uint32_t dp2 = 0x200000;
@@ -36,7 +48,7 @@ protected:
 	virtual void cacheColonMap();
 
 	uint32_t NIXIE_DRIVER_ISR_FLAG getMultiplexPins();
-	uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
+	uint64_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
 	uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit);
 	uint32_t NIXIE_DRIVER_ISR_FLAG convertPolarity(uint32_t pins);
 	void NIXIE_DRIVER_ISR_FLAG esp32InterruptHandler();
@@ -50,12 +62,13 @@ protected:
 private:
 	volatile Animation animation = ANIMATION_NONE;
 	volatile int animatedDigit = 0;
+	volatile int numDigits = 6;
 	volatile int direction = 0;
 	volatile uint32_t startAnimation = 0;
 	SoftPWM animatorPWM = SoftPWM(0, 3);
 
 	static volatile uint32_t callCycleCount;
-	static HV5523ESP32NixieDriver *_handler;
+	static MicrochipESP327SegDriver *_handler;
 #ifdef ESP32
 	static hw_timer_t *timer;
 #endif
@@ -68,4 +81,4 @@ private:
 	static NIXIE_DRIVER_ISR_FLAG void isr();
 };
 
-#endif /* LIBRARIES_NIXIEDRIVER_HV5523ESP32NIXIEDRIVER_H_ */
+#endif /* LIBRARIES_NIXIEDRIVER_MicrochipESP327SegDriver_H_ */
