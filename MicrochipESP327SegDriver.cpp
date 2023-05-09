@@ -58,10 +58,10 @@ DRAM_CONST const uint64_t MicrochipESP327SegDriver::colonMap[6] = {
 	1ULL << 40					// right (maybe)
 };
 
-uint32_t NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::getMultiplexPins() { return 0; }
-uint64_t NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::getPins(byte mask) { return colonMap[mask]; }
-uint32_t NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::getPin(uint32_t digit) { return segMap[digit]; }
-uint32_t NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::convertPolarity(uint32_t pins) { return pins; }
+uint32_t MicrochipESP327SegDriver::getMultiplexPins() { return 0; }
+uint64_t MicrochipESP327SegDriver::getPins(byte mask) { return colonMap[mask]; }
+uint32_t MicrochipESP327SegDriver::getPin(uint32_t digit) { return segMap[digit]; }
+uint32_t MicrochipESP327SegDriver::convertPolarity(uint32_t pins) { return pins; }
 
 void MicrochipESP327SegDriver::cacheColonMap() {
 }
@@ -89,7 +89,7 @@ bool MicrochipESP327SegDriver::animationDone() {
 	return done;
 }
 
-bool NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::adjustAnimation(uint32_t nowMs) {
+bool MicrochipESP327SegDriver::adjustAnimation(uint32_t nowMs) {
 	bool animating = false;
 
 	if (animation != ANIMATION_NONE) {
@@ -119,7 +119,7 @@ bool NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::adjustAnimation(uint32_t no
 	return animating;
 }
 
-bool NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::esp32CalculateFade(uint32_t nowMs) {
+bool MicrochipESP327SegDriver::esp32CalculateFade(uint32_t nowMs) {
 	displayPWM.onPercent = brightness;
 	fadeOutPWM.onPercent = 100;
 	fadeInPWM.onPercent = 0;
@@ -226,7 +226,7 @@ void MicrochipESP327SegDriver::init() {
 // weird system calls are being called, because they can do weird
 // things with flash. For the same reason, this function needs to be
 // in RAM.
-void NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::isr() {
+void MicrochipESP327SegDriver::isr() {
 #ifdef ESP8266
     uint32_t ccount;
     __asm__ __volatile__("esync; rsr %0,ccount":"=a" (ccount));
@@ -251,7 +251,7 @@ void MicrochipESP327SegDriver::interruptHandler() {
 }
 
 //#define TEST_DRIVER
-void NIXIE_DRIVER_ISR_FLAG MicrochipESP327SegDriver::esp32InterruptHandler() {
+void MicrochipESP327SegDriver::esp32InterruptHandler() {
 #ifndef TEST_DRIVER
 	static uint64_t prevPinMask = 0;
 	static byte prevColonMask = 0;

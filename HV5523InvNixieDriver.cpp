@@ -38,7 +38,7 @@ uint32_t HV5523InvNixieDriver::currentColonMap[4] = {
 	0	// none
 };
 
-uint32_t NIXIE_DRIVER_ISR_FLAG HV5523InvNixieDriver::getPins(byte mask) { return currentColonMap[mask]; }
+uint64_t NIXIE_DRIVER_ISR_FLAG HV5523InvNixieDriver::getPins(byte mask) { return currentColonMap[mask]; }
 uint32_t NIXIE_DRIVER_ISR_FLAG HV5523InvNixieDriver::getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
 uint32_t NIXIE_DRIVER_ISR_FLAG HV5523InvNixieDriver::convertPolarity(uint32_t pins) { return pins ^ 0xffffffff; }
 

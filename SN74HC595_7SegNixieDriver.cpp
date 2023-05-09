@@ -7,6 +7,7 @@
 
 #include <SN74HC595_7SegNixieDriver.h>
 #define USE_SPI
+#define SYNC_DELAY_MS 0
 
 DRAM_CONST const uint32_t kMap[] = {
 		0,
@@ -74,7 +75,19 @@ static SPIClass *pSPI;
 static spi_t *spi;	// Need to get it out so we can access it from an IRAM_ATTR routine
 #endif
 
-uint32_t SN74HC595_7SegNixieDriver::getPins(byte mask) { return 0; }
+void NIXIE_DRIVER_ISR_FLAG SN74HC595_7SegNixieDriver::syncHandler() {
+	if (_guard == 0) {
+		if (_handler) {
+			((SN74HC595_7SegNixieDriver*)_handler)->setSync(1);
+		}
+	}
+}
+void SN74HC595_7SegNixieDriver::setSync(int sync) {
+	syncHigh = sync;
+	syncMs = millis();
+}
+
+uint64_t SN74HC595_7SegNixieDriver::getPins(byte mask) { return 0; }
 
 uint32_t SN74HC595_7SegNixieDriver::getPin(uint32_t digit) {
 	switch (transition) {
@@ -96,6 +109,9 @@ uint32_t SN74HC595_7SegNixieDriver::getPin(uint32_t digit) {
 void SN74HC595_7SegNixieDriver::init() {
 	displayMode = NO_FADE;
 	nextDigit = 0;
+	fadeInPWM = SoftPWM(0, 50);
+	fadeOutPWM = SoftPWM(100, 50);
+	displayPWM = SoftPWM(100, 50);
 
 #ifdef USE_SPI
 	// Initialize HV chip
@@ -107,7 +123,7 @@ void SN74HC595_7SegNixieDriver::init() {
 #endif
 
 	pSPI->begin();
-	pSPI->setFrequency(10000000L);
+	pSPI->setFrequency(1000000L);
 	pSPI->setBitOrder(MSBFIRST);
 	pSPI->setDataMode(getSPIMode());
 
@@ -128,13 +144,36 @@ uint32_t SN74HC595_7SegNixieDriver::convertPolarity(uint32_t pins) { return pins
 
 void SN74HC595_7SegNixieDriver::interruptHandler() {
 	static uint32_t prevPinMask = 0;
+
+	unsigned long nowMs = millis();
+
+	if (!syncHigh) {
+		return;
+	}
+
+	if (nowMs - syncMs < SYNC_DELAY_MS) {
+		return;
+	}
+
+	syncHigh = 0;
+
 	uint32_t pinMask = 0;
 
-	bool stillFading = calculateFade(millis());
+	bool stillFading = calculateFade(nowMs);
 	displayPWM.onPercent = brightness;
 	bool displayOff = displayPWM.off();
 	bool fadeOutOff = fadeOutPWM.off();
 	bool fadeInOff = fadeInPWM.off();
+
+//	static int cycle = 0;
+//
+//	cycle = (cycle + 1) % 4;
+//
+//	if (brightness / 50 < cycle) {
+//		displayOff = true;
+//	} else {
+//		displayOff = false;
+//	}
 
 	uint32_t d = digit;
 	uint32_t n = nextDigit;
@@ -144,25 +183,32 @@ void SN74HC595_7SegNixieDriver::interruptHandler() {
 		byte cd = d & 0xf;
 		byte nd = n & 0xf;
 		uint32_t cMask = 0;
+		uint32_t onMask = 0;
 		if (cd != nd) {
 			if (stillFading) {
-				if (!fadeOutOff) {
-					cMask = getPin(cd);
-				}
+				if (!displayOff) {
+					if (displayMode != FADE_OUT_IN) {
+						onMask = getPin(cd) & getPin(nd);
+					}
 
-				if (!fadeInOff) {
-					cMask |= getPin(nd);
+					if (!fadeOutOff) {
+						cMask = getPin(cd);
+					}
+
+					if (!fadeInOff) {
+						cMask |= getPin(nd);
+					}
 				}
 			} else {
 				if (!displayOff) {
 					cMask = getPin(nd);
 				}
 			}
-		} else {
-			if (!displayOff) {
-				cMask = getPin(nd);
-			}
+		} else if (!displayOff) {
+			cMask = getPin(cd);
 		}
+
+		cMask |= onMask;
 
 		pinMask |= ((uint64_t)cMask) << (8*(3-i));
 
@@ -183,8 +229,8 @@ void SN74HC595_7SegNixieDriver::interruptHandler() {
 	prevPinMask = pinMask;
 
 	digitalWrite(LEpin, LOW);
-	    unsigned long nowMic = micros();
-	    while (micros() - nowMic < 100L) {}
+//	    unsigned long nowMic = micros();
+//	    while (micros() - nowMic < 100L) {}
 #ifdef ESP8266
 #ifdef USE_SPI
 	while(SPI1CMD & SPIBUSY) {}
@@ -210,4 +256,54 @@ void SN74HC595_7SegNixieDriver::interruptHandler() {
 #endif
 
 	digitalWrite(LEpin, HIGH);
+}
+
+bool NIXIE_DRIVER_ISR_FLAG SN74HC595_7SegNixieDriver::calculateFade(uint32_t nowMs) {
+	displayPWM.onPercent = brightness;
+	fadeOutPWM.onPercent = 100;
+	fadeInPWM.onPercent = 0;
+
+	uint32_t fadeTime = FADE_TIME;
+	uint32_t effectTime = FADE_TIME;
+	if (displayMode == FADE_OUT_IN) {
+		fadeTime = FADE_FAST_TIME;
+	}
+	if (displayMode == CROSS_FADE_FAST) {
+		fadeTime = effectTime = FADE_FAST_TIME;
+	}
+
+	if (nowMs - startFade > effectTime) {
+		// Fading lasts at most FADE_TIME ms
+		return false;
+	}
+
+	long fadeOutDutyCycle = (long) 100 * (fadeTime + startFade - nowMs) / fadeTime;
+	fadeOutDutyCycle = fadeOutDutyCycle * fadeOutDutyCycle / 100;
+	long fadeInDutyCycle = (long) 100 * (nowMs - startFade) / fadeTime;
+	fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle / 100;
+
+	// Apparently switch statements are flaky in ISRs, so if then else
+	if (displayMode == NO_FADE || displayMode == NO_FADE_DELAY) {
+		return false;
+	} else if (displayMode == FADE_OUT) {
+		fadeOutPWM.onPercent = fadeOutDutyCycle;
+	} else if (displayMode == FADE_IN) {
+		fadeOutPWM.onPercent = 0;
+		fadeInPWM.onPercent = fadeInDutyCycle;
+	} else if (displayMode == CROSS_FADE || displayMode == CROSS_FADE_FAST) {
+		fadeOutPWM.onPercent = fadeOutDutyCycle;
+		fadeInPWM.onPercent = fadeInDutyCycle;
+	} else if (displayMode == FADE_OUT_IN) {
+		fadeInDutyCycle = (long) 100 * (nowMs - startFade - fadeTime) / fadeTime;
+		fadeInDutyCycle = fadeInDutyCycle * fadeInDutyCycle / 100;
+
+		if (nowMs - startFade <= fadeTime) {
+			fadeOutPWM.onPercent = fadeOutDutyCycle;
+			fadeInPWM.onPercent = 0;
+		} else {
+			fadeInPWM.onPercent = fadeInDutyCycle;
+			fadeOutPWM.onPercent = 0;
+		}
+	}
+	return true;
 }

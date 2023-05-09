@@ -27,7 +27,7 @@ protected:
 
 	virtual uint8_t getSPIMode() { return SPI_MODE1; }
 	virtual void cacheColonMap();
-	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
+	virtual uint64_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
 	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit);
 	virtual uint32_t NIXIE_DRIVER_ISR_FLAG convertPolarity(uint32_t pins);
 };

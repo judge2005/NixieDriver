@@ -11,7 +11,11 @@
 #include <Arduino.h>
 
 #ifdef ESP8266
+#if ARDUINO_ESP8266_MAJOR < 3
 #define NIXIE_DRIVER_ISR_FLAG ICACHE_RAM_ATTR
+#else
+#define NIXIE_DRIVER_ISR_FLAG IRAM_ATTR
+#endif
 #define DRAM_CONST
 #elif ESP32
 #define NIXIE_DRIVER_ISR_FLAG IRAM_ATTR
@@ -72,9 +76,6 @@ public:
 	}
 	inline void setMode(const DisplayMode mode) {
 		displayMode = mode;
-	}
-	inline void setBrightness(const byte b) {
-		brightness = b;
 	}
 	inline void setNixieDigit(const uint32_t digit) {
 		nextDigit = digit;
@@ -142,6 +143,8 @@ public:
 	virtual void setAnimation(Animation animation, int direction) {}
 	virtual bool supportsAnimation() { return false; }
 	virtual bool animationDone() { return true; }
+	virtual void setBrightness(const byte b) { brightness = b; }
+
 
 protected:
 	virtual void NIXIE_DRIVER_ISR_FLAG interruptHandler() = 0;
@@ -173,12 +176,12 @@ protected:
 	#define FADE_TIME2 1200
 
 	static volatile int _guard;
+	static NixieDriver *_handler;
 
 private:
 	static byte digitMap[13];
 
 	static volatile uint32_t callCycleCount;
-	static NixieDriver *_handler;
 #ifdef ESP32
 	static hw_timer_t *timer;
 #endif

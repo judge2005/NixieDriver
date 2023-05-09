@@ -25,7 +25,7 @@ protected:
 	static DRAM_CONST const uint32_t dp2 = 0x200000;
 
 	virtual uint8_t getSPIMode() { return SPI_MODE1; }
-	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask) { return colonMap[mask]; }
+	virtual uint64_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask) { return colonMap[mask]; }
 	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit) { return transition == 1 ? 0 : nixieDigitMap[digit]; }
 	virtual uint32_t NIXIE_DRIVER_ISR_FLAG convertPolarity(uint32_t pins) { return pins; }
 };

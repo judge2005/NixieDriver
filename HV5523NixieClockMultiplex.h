@@ -24,7 +24,7 @@ public:
 protected:
 	static DRAM_CONST const uint32_t multiplexMap[6];
 
-	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask) {
+	virtual uint64_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask) {
 		if (colonMask & (1 << multiplexCount)) {
 			return 0x100000;
 		} else {

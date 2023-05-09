@@ -38,7 +38,12 @@ public:
 		return ret;
 	}
 
+	static void NIXIE_DRIVER_ISR_FLAG syncHandler();
+	void setSync(int sync);
 protected:
+	bool syncHigh = 0;
+	volatile unsigned long syncMs;
+
 	uint32_t oldDigit = 0;
 	static DRAM_CONST const uint32_t nixieDigitMap[13];
 	static DRAM_CONST const uint32_t circularWipeMap[8];
@@ -48,8 +53,9 @@ protected:
 	virtual uint8_t getSPIMode() { return SPI_MODE0; }
 
 	virtual void NIXIE_DRIVER_ISR_FLAG interruptHandler();
+	virtual bool NIXIE_DRIVER_ISR_FLAG calculateFade(uint32_t nowMs);
 	virtual uint32_t NIXIE_DRIVER_ISR_FLAG convertPolarity(uint32_t pins);
-	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
+	virtual uint64_t NIXIE_DRIVER_ISR_FLAG getPins(byte mask);
 	virtual uint32_t NIXIE_DRIVER_ISR_FLAG getPin(uint32_t digit);
 };
 
