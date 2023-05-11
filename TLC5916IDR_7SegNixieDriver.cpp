@@ -101,6 +101,10 @@ void TLC5916IDR_7SegNixieDriver::init() {
 	pinMode(CLOCKPin, OUTPUT);
 	pinMode(LEpin, OUTPUT);
 
+	digitalWrite(DATAPin, LOW);
+	digitalWrite(CLOCKPin, LOW);
+	digitalWrite(LEpin, LOW);
+
 	NixieDriver::init();
 }
 
@@ -257,7 +261,6 @@ void TLC5916IDR_7SegNixieDriver::interruptHandler() {
 
 	prevPinMask = pinMask;
 
-	digitalWrite(LEpin, LOW);
 //	    unsigned long nowMic = micros();
 //	    while (micros() - nowMic < 100L) {}
     for (int pos=0; pos < 6; pos++) {
@@ -281,7 +284,8 @@ void TLC5916IDR_7SegNixieDriver::interruptHandler() {
 		}
     }
 
-	digitalWrite(LEpin, HIGH);
+	GPOS = (1 << LEpin);
+	GPOC = (1 << LEpin);
 }
 
 bool TLC5916IDR_7SegNixieDriver::adjustAnimation(uint32_t nowMs) {
