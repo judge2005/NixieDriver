@@ -93,6 +93,9 @@ public:
 	inline void setDisplayOn(const bool displayOn) {
 		this->displayOn = displayOn;
 	}
+	inline bool getDisplayOn() {
+		return displayOn;
+	}
 	inline byte getIndicator() {
 		return indicator;
 	}

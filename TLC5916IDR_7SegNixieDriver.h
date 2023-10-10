@@ -63,11 +63,11 @@ private:
 	volatile int numDigits = 6;
 	volatile int direction = 0;
 	volatile uint32_t startAnimation = 0;
-	volatile int warming = TLC5916IDR_7SegNixieDriverMAX_WARMING;
 	SoftPWM animatorPWM = SoftPWM(0, 3);
 	SoftPWM ledFadeInPWM = SoftPWM(0, 3);
 	SoftPWM ledFadeOutPWM = SoftPWM(100, 3);
 	SoftPWM ledDisplayPWM = SoftPWM(100, 2);
+	SoftPWM warmingPWM = SoftPWM(100, 2);
 };
 
 #endif /* LIBRARIES_NIXIEDRIVER_TLC5916IDR_7SEGNIXIEDRIVER_H_ */

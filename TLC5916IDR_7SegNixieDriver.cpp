@@ -6,6 +6,7 @@
  */
 #include <Arduino.h>
 #include <TLC5916IDR_7SegNixieDriver.h>
+//#define DTF104B
 
 #ifdef ESP8266
 #include <esp8266_peri.h>
@@ -56,8 +57,13 @@ DRAM_CONST const uint32_t TLC5916IDR_7SegNixieDriver::segMap[13] = {
 DRAM_CONST const uint64_t TLC5916IDR_7SegNixieDriver::colonMap[6] = {
 	0,							// none
 	1ULL << 15 | 1ULL << 23 | 1ULL << 31 | 1ULL << 39,	// all
+#ifdef DTF104B
+	1ULL << 15 | 1ULL << 39,	// top (maybe)
+	1ULL << 23 | 1ULL << 31,	// bottom (maybe)
+#else
 	1ULL << 15 | 1ULL << 31,	// top (maybe)
 	1ULL << 23 | 1ULL << 39,	// bottom (maybe)
+#endif
 	1ULL << 15 | 1ULL << 23,	// left (maybe)
 	1ULL << 31 | 1ULL << 39		// right (maybe)
 };
@@ -113,8 +119,8 @@ void TLC5916IDR_7SegNixieDriver::setBrightness(const byte b) {
 }
 
 void TLC5916IDR_7SegNixieDriver::setWarming(byte val) {
-	if (val <= TLC5916IDR_7SegNixieDriverMAX_WARMING - 1) {
-		warming = TLC5916IDR_7SegNixieDriverMAX_WARMING - val;
+	if (val < TLC5916IDR_7SegNixieDriverMAX_WARMING) {
+		warmingPWM.onPercent = val * 5;
 	}
 }
 
@@ -139,13 +145,7 @@ void TLC5916IDR_7SegNixieDriver::interruptHandler() {
 	bool warm = false;
 	byte warmMask = 0;
 	// Digit pre-heat
-	if (warming < TLC5916IDR_7SegNixieDriverMAX_WARMING) {
-		warmCounter++;
-		if (warmCounter > warming) {
-			warmCounter = 0;
-			warm = true;
-		}
-	}
+	warm = !warmingPWM.off();
 
 	// Seconds are in the LSB
 	for (int i=0; i<numDigits; i++) {
@@ -283,9 +283,13 @@ void TLC5916IDR_7SegNixieDriver::interruptHandler() {
 #endif
 		}
     }
-
+#ifdef ESP8266
 	GPOS = (1 << LEpin);
 	GPOC = (1 << LEpin);
+#else
+	digitalWrite(LEpin, HIGH);
+	digitalWrite(LEpin, LOW);
+#endif
 }
 
 bool TLC5916IDR_7SegNixieDriver::adjustAnimation(uint32_t nowMs) {
