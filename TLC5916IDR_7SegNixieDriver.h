@@ -15,11 +15,11 @@
 
 class TLC5916IDR_7SegNixieDriver : public NixieDriver {
 public:
-	TLC5916IDR_7SegNixieDriver(int LEpin, DigitOrder digitOrder) :
-		LEpin(LEpin), digitShift(digitOrder)
+	TLC5916IDR_7SegNixieDriver(int LEpin, DigitOrder digitOrder, const uint64_t *colonMap) :
+		LEpin(LEpin), digitShift(digitOrder), colonMap(colonMap)
 	{}
 	TLC5916IDR_7SegNixieDriver(int LEpin) :
-		LEpin(LEpin), digitShift(LRDigitOrder())
+		LEpin(LEpin), digitShift(DriverDigitOrder()), colonMap(da2000Colons)
 	{}
 	virtual ~TLC5916IDR_7SegNixieDriver();
 
@@ -33,15 +33,18 @@ public:
 	void setRightLED(bool state) { rightLEDState = state; }
 	virtual void setBrightness(const byte b);
 
+	static DRAM_CONST const uint64_t da2000Colons[6];
+	static DRAM_CONST const uint64_t dtf104bColons[6];
+
 protected:
 	int LEpin;
 	volatile bool leftLEDState = false;
 	volatile bool rightLEDState = false;
 	DigitOrder digitShift;
+	const uint64_t *colonMap;
 
 	static DRAM_CONST const uint32_t digitShiftMap[6];
 	static DRAM_CONST const uint32_t segMap[];
-	static DRAM_CONST const uint64_t colonMap[6];
 	static DRAM_CONST const uint32_t dp1 = 0x100000;
 	static DRAM_CONST const uint32_t dp2 = 0x200000;
 
