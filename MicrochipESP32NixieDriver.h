@@ -48,8 +48,8 @@ protected:
 	Polarity invert;
 
 	static uint32_t currentDigitMap[DIGIT_MAP_SIZE];
-	static DRAM_CONST const uint32_t colonMap[6];
-	static uint32_t currentColonMap[6];	// Not used
+	static DRAM_CONST const uint32_t colonMap[10];
+	static uint32_t currentColonMap[10];	// Not used
 
 	static DRAM_CONST const uint32_t dp1 = 0x100000;
 	static DRAM_CONST const uint32_t dp2 = 0x200000;

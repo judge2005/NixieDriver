@@ -87,16 +87,24 @@ uint32_t MicrochipESP32NixieDriver::currentDigitMap[16] = {
  * 345 = 8 + 4000 + 2000000 = 2004008
  */
 
-DRAM_CONST const uint32_t MicrochipESP32NixieDriver::colonMap[6] = {
+DRAM_CONST const uint32_t MicrochipESP32NixieDriver::colonMap[10] = {
 	0,		// none
 	0xf,	// all
 	0x5,	// top
 	0xa,	// bottom
 	0x3,	// left (maybe)
-	0xc		// right (maybe)
+	0xc,	// right (maybe)
+	0x4,    // top left
+	0x1,    // top right
+	0x2,    // bottom right
+	0x8     // bottom left
 };
 
-uint32_t MicrochipESP32NixieDriver::currentColonMap[6] = {
+uint32_t MicrochipESP32NixieDriver::currentColonMap[10] = {
+	0,	// none
+	0,	// none
+	0,	// none
+	0,	// none
 	0,	// none
 	0,	// none
 	0,	// none
